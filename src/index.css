@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 30% 3%;
+    --foreground: 210 25% 96%;
+
+    --card: 210 25% 7%;
+    --card-foreground: 210 25% 96%;
+
+    --popover: 210 25% 7%;
+    --popover-foreground: 210 25% 96%;
+
+    --primary: 152 100% 45%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 210 20% 12%;
+    --secondary-foreground: 210 25% 96%;
+
+    --muted: 210 15% 15%;
+    --muted-foreground: 205 15% 55%;
+
+    --accent: 174 100% 37%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 4 80% 63%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 32 100% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --border: 210 10% 15%;
+    --input: 210 15% 12%;
+    --ring: 152 100% 45%;
+
+    --radius: 1rem;
+
+    --sidebar-background: 210 25% 5%;
+    --sidebar-foreground: 210 25% 96%;
+    --sidebar-primary: 152 100% 45%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 152 100% 45%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 210 10% 12%;
+    --sidebar-ring: 152 100% 45%;
+
+    /* Custom tokens */
+    --surface: 210 22% 9%;
+    --surface-2: 210 20% 13%;
+    --green-glow: 152 100% 45%;
+    --green-dim: 152 100% 39%;
+  }
+
+  .dark {
+    --background: 210 30% 3%;
+    --foreground: 210 25% 96%;
+    --card: 210 25% 7%;
+    --card-foreground: 210 25% 96%;
+    --popover: 210 25% 7%;
+    --popover-foreground: 210 25% 96%;
+    --primary: 152 100% 45%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 210 20% 12%;
+    --secondary-foreground: 210 25% 96%;
+    --muted: 210 15% 15%;
+    --muted-foreground: 205 15% 55%;
+    --accent: 174 100% 37%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 4 80% 63%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 10% 15%;
+    --input: 210 15% 12%;
+    --ring: 152 100% 45%;
+    --sidebar-background: 210 25% 5%;
+    --sidebar-foreground: 210 25% 96%;
+    --sidebar-primary: 152 100% 45%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 152 100% 45%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 210 10% 12%;
+    --sidebar-ring: 152 100% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.5);
+  }
+}
+
+@layer utilities {
+  .glow-green {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.15), 0 0 60px hsl(var(--primary) / 0.05);
+  }
+  .glow-green-strong {
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.25), 0 0 80px hsl(var(--primary) / 0.1);
+  }
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+  .text-gradient-green {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+}
