@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { Send } from 'lucide-react';
+import { produtosMock } from '@/data/mock';
 
 interface Message {
   from: 'user' | 'bot';
@@ -7,49 +9,130 @@ interface Message {
   time: string;
 }
 
-const conversation: Message[] = [
+const initialMessages: Message[] = [
   { from: 'bot', text: 'Olá! 👋 Bem-vindo ao ZapPDV.\nDigite *menu* para ver as opções.', time: '14:20' },
-  { from: 'user', text: 'menu', time: '14:20' },
-  { from: 'bot', text: '📋 *Menu Principal*\n\n1️⃣ Nova venda\n2️⃣ Consultar estoque\n3️⃣ Meus pedidos\n4️⃣ Relatório do dia\n5️⃣ Ajuda\n\nDigite o número da opção:', time: '14:21' },
-  { from: 'user', text: '1', time: '14:21' },
-  { from: 'bot', text: '🛒 *Nova venda iniciada!*\n\nDigite o nome do cliente ou "balcão":', time: '14:21' },
-  { from: 'user', text: 'balcão', time: '14:22' },
-  { from: 'bot', text: '✅ Venda para *Balcão*\n\nAdicione itens:\n*add [produto] [qtd]*\n\nExemplo: add coca 2', time: '14:22' },
-  { from: 'user', text: 'add coca 3', time: '14:22' },
-  { from: 'bot', text: '✅ *3x Coca-Cola 350ml* adicionado\nSubtotal: R$ 15,00\n\n🛒 Total atual: *R$ 15,00*\nDigite "fechar" para finalizar.', time: '14:22' },
-  { from: 'user', text: 'add agua 2', time: '14:23' },
-  { from: 'bot', text: '✅ *2x Água Mineral 500ml* adicionado\nSubtotal: R$ 5,00\n\n🛒 Total atual: *R$ 20,00*\nDigite "fechar" para finalizar.', time: '14:23' },
-  { from: 'user', text: 'fechar', time: '14:23' },
-  { from: 'bot', text: '📦 *Resumo do Pedido #P008*\n\n• 3x Coca-Cola 350ml — R$ 15,00\n• 2x Água Mineral 500ml — R$ 5,00\n\n💰 *Total: R$ 20,00*\n\nForma de pagamento?\n1️⃣ PIX\n2️⃣ Dinheiro\n3️⃣ Cartão\n4️⃣ Fiado', time: '14:24' },
 ];
 
-export function ChatMockup() {
-  const [visibleCount, setVisibleCount] = useState(0);
-  const chatRef = useRef<HTMLDivElement>(null);
+function getTime() {
+  const d = new Date();
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+}
 
-  useEffect(() => {
-    if (visibleCount < conversation.length) {
-      const timeout = setTimeout(() => {
-        setVisibleCount(c => c + 1);
-      }, visibleCount === 0 ? 500 : 900);
-      return () => clearTimeout(timeout);
-    }
-  }, [visibleCount]);
+type BotState = 'idle' | 'aguardando_cliente' | 'aguardando_itens' | 'aguardando_pagamento';
+
+interface CartItem { nome: string; qtd: number; preco: number; subtotal: number; }
+
+export function ChatMockup() {
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [input, setInput] = useState('');
+  const [botState, setBotState] = useState<BotState>('idle');
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cliente, setCliente] = useState('');
+  const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
-  }, [visibleCount]);
+  }, [messages]);
+
+  const addMsg = (from: 'user' | 'bot', text: string) => {
+    setMessages(prev => [...prev, { from, text, time: getTime() }]);
+  };
+
+  const processInput = (raw: string) => {
+    const text = raw.trim();
+    if (!text) return;
+    addMsg('user', text);
+    const lower = text.toLowerCase();
+
+    setTimeout(() => {
+      if (lower === 'menu' || lower === 'ajuda') {
+        setBotState('idle');
+        addMsg('bot', '📋 *Menu Principal*\n\n1️⃣ Nova venda\n2️⃣ Consultar estoque\n3️⃣ Relatório do dia\n4️⃣ Ajuda\n\nDigite o número da opção:');
+        return;
+      }
+
+      if (botState === 'idle') {
+        if (lower === '1' || lower === 'nova venda') {
+          setBotState('aguardando_cliente');
+          addMsg('bot', '🛒 *Nova venda iniciada!*\n\nDigite o nome do cliente ou "balcão":');
+        } else if (lower === '2' || lower.startsWith('estoque')) {
+          const query = lower.replace('estoque', '').trim();
+          const found = produtosMock.filter(p => p.nome.toLowerCase().includes(query || ''));
+          const list = found.slice(0, 5).map(p => `• ${p.nome} — ${p.estoque} un`).join('\n');
+          addMsg('bot', `📦 *Estoque*\n\n${list || 'Nenhum produto encontrado.'}`);
+        } else if (lower === '3') {
+          addMsg('bot', '📊 *Relatório do dia*\n\n💰 Faturamento: R$ 1.284,50\n📦 Pedidos: 12\n🎫 Ticket médio: R$ 107,04\n\n🏆 Top: Coca-Cola 350ml (18 un)');
+        } else {
+          addMsg('bot', '🤔 Não entendi. Digite *menu* para ver as opções.');
+        }
+        return;
+      }
+
+      if (botState === 'aguardando_cliente') {
+        setCliente(text);
+        setCart([]);
+        setBotState('aguardando_itens');
+        addMsg('bot', `✅ Venda para *${text}*\n\nAdicione itens:\n*add [produto] [qtd]*\n\nExemplo: add coca 2`);
+        return;
+      }
+
+      if (botState === 'aguardando_itens') {
+        if (lower === 'fechar') {
+          const total = cart.reduce((s, c) => s + c.subtotal, 0);
+          const items = cart.map(c => `• ${c.qtd}x ${c.nome} — R$ ${c.subtotal.toFixed(2).replace('.', ',')}`).join('\n');
+          setBotState('aguardando_pagamento');
+          addMsg('bot', `📦 *Resumo do Pedido*\n\n${items}\n\n💰 *Total: R$ ${total.toFixed(2).replace('.', ',')}*\n\nForma de pagamento?\n1️⃣ PIX\n2️⃣ Dinheiro\n3️⃣ Cartão\n4️⃣ Fiado`);
+          return;
+        }
+        const match = lower.match(/^add\s+(.+?)\s+(\d+)$/);
+        if (match) {
+          const query = match[1];
+          const qtd = parseInt(match[2]);
+          const prod = produtosMock.find(p => p.nome.toLowerCase().includes(query));
+          if (prod) {
+            const item = { nome: prod.nome, qtd, preco: prod.preco, subtotal: prod.preco * qtd };
+            setCart(prev => [...prev, item]);
+            const newTotal = [...cart, item].reduce((s, c) => s + c.subtotal, 0);
+            addMsg('bot', `✅ *${qtd}x ${prod.nome}* adicionado\nSubtotal: R$ ${item.subtotal.toFixed(2).replace('.', ',')}\n\n🛒 Total: *R$ ${newTotal.toFixed(2).replace('.', ',')}*\nDigite "fechar" para finalizar.`);
+          } else {
+            addMsg('bot', '❌ Produto não encontrado. Tente novamente.');
+          }
+        } else {
+          addMsg('bot', '🤔 Use: *add [produto] [qtd]*\nExemplo: add coca 2');
+        }
+        return;
+      }
+
+      if (botState === 'aguardando_pagamento') {
+        const pagamentos: Record<string, string> = { '1': 'PIX', '2': 'Dinheiro', '3': 'Cartão', '4': 'Fiado' };
+        const forma = pagamentos[lower];
+        if (forma) {
+          setBotState('idle');
+          setCart([]);
+          addMsg('bot', `✅ *Pedido confirmado!*\n\n🧾 Pagamento: ${forma}\n👤 Cliente: ${cliente}\n\nDigite *menu* para novo pedido.`);
+        } else {
+          addMsg('bot', 'Digite 1, 2, 3 ou 4 para escolher a forma de pagamento.');
+        }
+        return;
+      }
+    }, 400);
+  };
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    processInput(input);
+    setInput('');
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, delay: 0.4 }}
-      className="rounded-3xl border border-border bg-card overflow-hidden shadow-2xl glow-green"
+      className="rounded-3xl border border-border bg-card overflow-hidden shadow-2xl"
     >
-      {/* Header */}
       <div className="bg-surface-2 px-4 py-3 flex items-center gap-3 border-b border-border">
         <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
           <span className="text-primary font-display font-bold text-base">Z</span>
@@ -59,13 +142,12 @@ export function ChatMockup() {
           <p className="text-xs text-primary">online</p>
         </div>
       </div>
-      {/* Messages */}
       <div
         ref={chatRef}
         className="h-[420px] overflow-y-auto p-4 space-y-3"
         style={{ background: 'hsl(210 25% 5%)' }}
       >
-        {conversation.slice(0, visibleCount).map((msg, i) => (
+        {messages.map((msg, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -85,19 +167,22 @@ export function ChatMockup() {
             </div>
           </motion.div>
         ))}
-        {visibleCount < conversation.length && (
-          <div className="flex items-center gap-1 text-muted-foreground/50 px-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:0ms]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:300ms]" />
-          </div>
-        )}
       </div>
-      {/* Input mock */}
-      <div className="bg-surface-2 px-4 py-3 border-t border-border">
-        <div className="rounded-full bg-muted px-4 py-2.5 text-sm text-muted-foreground">
-          Digite uma mensagem...
-        </div>
+      <div className="bg-surface-2 px-4 py-3 border-t border-border flex gap-2">
+        <input
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSend()}
+          placeholder="Digite uma mensagem..."
+          className="flex-1 rounded-full bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/30"
+        />
+        <button
+          onClick={handleSend}
+          className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors flex-shrink-0"
+        >
+          <Send className="h-4 w-4" />
+        </button>
       </div>
     </motion.div>
   );

@@ -3,10 +3,13 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ShoppingCart, Package, BarChart3, Users, Bell, Shield,
-  MessageSquare, ArrowRight, Check, Star, Zap, Bot, Gauge, Clock, Wifi
+  MessageSquare, ArrowRight, Check, Star, Zap, Bot, Gauge, Clock, Wifi,
+  LayoutDashboard, Mail, Phone, MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChatMockup } from '@/components/landing/ChatMockup';
+import { AnimatedBackground } from '@/components/landing/AnimatedBackground';
+
 const features = [
   { icon: ShoppingCart, title: 'PDV por mensagem', desc: 'Abra pedidos e feche vendas sem sair do chat' },
   { icon: Package, title: 'Estoque automático', desc: 'Cada venda atualiza o estoque em tempo real' },
@@ -45,7 +48,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background bg-noise">
+    <div className="min-h-screen bg-background">
       {/* Navbar */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled ? 'bg-background/80 backdrop-blur-xl border-b border-border' : ''
@@ -59,26 +62,28 @@ export default function LandingPage() {
             <a href="#como-funciona" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Como funciona</a>
             <a href="#precos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Preços</a>
           </div>
-          <Link to="/login">
-            <Button className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl">
-              Começar grátis
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/dashboard">
+              <Button variant="outline" className="border-border text-foreground rounded-xl hidden sm:inline-flex">
+                <LayoutDashboard className="mr-2 h-4 w-4" /> Painel
+              </Button>
+            </Link>
+            <Link to="/login">
+              <Button className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl">
+                Começar grátis
+              </Button>
+            </Link>
+          </div>
         </div>
       </nav>
 
       {/* Hero */}
       <section className="relative pt-32 pb-24 px-4 overflow-hidden">
-        {/* Background effects */}
+        <AnimatedBackground />
+        {/* Gradient overlays */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[150px] animate-float" />
-          <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/8 blur-[120px] animate-float [animation-delay:1.5s]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-[200px]" />
-          {/* Grid pattern */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: 'linear-gradient(hsl(152 100% 45% / 0.3) 1px, transparent 1px), linear-gradient(90deg, hsl(152 100% 45% / 0.3) 1px, transparent 1px)',
-            backgroundSize: '60px 60px'
-          }} />
+          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[150px] animate-float" />
+          <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/5 blur-[120px] animate-float [animation-delay:1.5s]" />
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10">
@@ -116,7 +121,7 @@ export default function LandingPage() {
               className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
             >
               <Link to="/login">
-                <Button size="lg" className="bg-primary text-primary-foreground font-bold rounded-xl px-8 glow-green-strong hover:bg-primary/90 text-base h-12">
+                <Button size="lg" className="bg-primary text-primary-foreground font-bold rounded-xl px-8 hover:bg-primary/90 text-base h-12">
                   Testar grátis 14 dias <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -138,7 +143,7 @@ export default function LandingPage() {
             </motion.div>
           </div>
 
-          {/* Bot simulator + System info side by side */}
+          {/* Bot simulator + System info */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start max-w-6xl mx-auto">
             <div className="lg:col-span-3">
               <ChatMockup />
@@ -255,7 +260,7 @@ export default function LandingPage() {
                 variants={fadeUp}
                 className={`rounded-2xl border p-6 transition-all hover:-translate-y-1 ${
                   plan.highlight
-                    ? 'border-primary bg-primary/5 glow-green relative'
+                    ? 'border-primary bg-primary/5 relative'
                     : 'border-border bg-card'
                 }`}
               >
@@ -300,22 +305,68 @@ export default function LandingPage() {
           <h2 className="text-3xl font-display font-bold text-foreground mb-4">
             Comece a vender pelo WhatsApp hoje mesmo
           </h2>
-          <Link to="/login">
-            <Button size="lg" className="bg-primary text-primary-foreground font-bold rounded-xl px-10 glow-green hover:bg-primary/90">
-              Começar grátis <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link to="/login">
+              <Button size="lg" className="bg-primary text-primary-foreground font-bold rounded-xl px-10 hover:bg-primary/90">
+                Começar grátis <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <Link to="/dashboard">
+              <Button size="lg" variant="outline" className="border-border text-foreground rounded-xl px-10 hover:bg-muted">
+                <LayoutDashboard className="mr-2 h-4 w-4" /> Acessar Painel
+              </Button>
+            </Link>
+          </div>
           <p className="text-sm text-muted-foreground mt-4">14 dias grátis. Sem cartão de crédito.</p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-10 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="font-display font-extrabold text-lg text-foreground">
-            Zap<span className="text-primary">PDV</span>
-          </span>
-          <p className="text-xs text-muted-foreground">© 2025 ZapPDV. Todos os direitos reservados.</p>
+      <footer className="border-t border-border py-12 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+            <div>
+              <span className="font-display font-extrabold text-lg text-foreground">
+                Zap<span className="text-primary">PDV</span>
+              </span>
+              <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+                Transforme seu WhatsApp em um PDV completo. Venda, gerencie estoque e acompanhe relatórios em tempo real.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-display font-bold text-foreground mb-3">Produto</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a></li>
+                <li><a href="#precos" className="hover:text-foreground transition-colors">Preços</a></li>
+                <li><a href="#como-funciona" className="hover:text-foreground transition-colors">Como funciona</a></li>
+                <li><Link to="/bot-simulator" className="hover:text-foreground transition-colors">Simulador</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-display font-bold text-foreground mb-3">Acesso</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link to="/dashboard" className="hover:text-foreground transition-colors">Painel de Controle</Link></li>
+                <li><Link to="/login" className="hover:text-foreground transition-colors">Login</Link></li>
+                <li><Link to="/pedidos" className="hover:text-foreground transition-colors">Pedidos</Link></li>
+                <li><Link to="/produtos" className="hover:text-foreground transition-colors">Produtos</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-display font-bold text-foreground mb-3">Contato</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> contato@zappdv.com</li>
+                <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (11) 99999-0000</li>
+                <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> São Paulo, SP</li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-muted-foreground">© 2025 ZapPDV. Todos os direitos reservados.</p>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <a href="#" className="hover:text-foreground transition-colors">Termos de uso</a>
+              <a href="#" className="hover:text-foreground transition-colors">Privacidade</a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
