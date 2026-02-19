@@ -3,11 +3,10 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ShoppingCart, Package, BarChart3, Users, Bell, Shield,
-  MessageSquare, ArrowRight, Check, Star, Zap
+  MessageSquare, ArrowRight, Check, Star, Zap, Bot, Gauge, Clock, Wifi
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChatMockup } from '@/components/landing/ChatMockup';
-
 const features = [
   { icon: ShoppingCart, title: 'PDV por mensagem', desc: 'Abra pedidos e feche vendas sem sair do chat' },
   { icon: Package, title: 'Estoque automático', desc: 'Cada venda atualiza o estoque em tempo real' },
@@ -69,10 +68,19 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-32 pb-20 px-4 overflow-hidden">
+      <section className="relative pt-32 pb-24 px-4 overflow-hidden">
+        {/* Background effects */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/8 blur-[120px]" />
+          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[150px] animate-float" />
+          <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/8 blur-[120px] animate-float [animation-delay:1.5s]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-[200px]" />
+          {/* Grid pattern */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: 'linear-gradient(hsl(152 100% 45% / 0.3) 1px, transparent 1px), linear-gradient(90deg, hsl(152 100% 45% / 0.3) 1px, transparent 1px)',
+            backgroundSize: '60px 60px'
+          }} />
         </div>
+
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <motion.div
@@ -88,16 +96,16 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold text-foreground leading-tight mb-6"
+              className="text-4xl sm:text-5xl lg:text-7xl font-hero font-black text-foreground leading-[1.1] mb-6 tracking-tight"
             >
               Venda, gerencie e cresça pelo{' '}
-              <span className="text-primary">WhatsApp</span>
+              <span className="text-gradient-green">WhatsApp</span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-lg text-muted-foreground font-light max-w-2xl mx-auto mb-8"
+              className="text-lg sm:text-xl text-muted-foreground font-light max-w-2xl mx-auto mb-8"
             >
               Bot inteligente que transforma seu WhatsApp em um PDV completo. Pedidos, estoque e relatórios direto nas mensagens.
             </motion.p>
@@ -108,13 +116,13 @@ export default function LandingPage() {
               className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
             >
               <Link to="/login">
-                <Button size="lg" className="bg-primary text-primary-foreground font-bold rounded-xl px-8 glow-green hover:bg-primary/90">
-                  Testar grátis 14 dias <ArrowRight className="ml-2 h-4 w-4" />
+                <Button size="lg" className="bg-primary text-primary-foreground font-bold rounded-xl px-8 glow-green-strong hover:bg-primary/90 text-base h-12">
+                  Testar grátis 14 dias <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link to="/bot-simulator">
-                <Button size="lg" variant="outline" className="border-border text-foreground rounded-xl px-8 hover:bg-muted">
-                  <MessageSquare className="mr-2 h-4 w-4" /> Ver como funciona
+                <Button size="lg" variant="outline" className="border-border text-foreground rounded-xl px-8 hover:bg-muted text-base h-12">
+                  <MessageSquare className="mr-2 h-5 w-5" /> Ver como funciona
                 </Button>
               </Link>
             </motion.div>
@@ -122,21 +130,50 @@ export default function LandingPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="flex items-center justify-center gap-8 text-sm text-muted-foreground"
+              className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm text-muted-foreground"
             >
               <span className="flex items-center gap-1.5"><Zap className="h-4 w-4 text-primary" /> 2min para configurar</span>
               <span className="flex items-center gap-1.5"><MessageSquare className="h-4 w-4 text-primary" /> 100% no WhatsApp</span>
               <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" /> 0 app para baixar</span>
             </motion.div>
           </div>
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.5 }}
-            className="max-w-md mx-auto"
-          >
-            <ChatMockup />
-          </motion.div>
+
+          {/* Bot simulator + System info side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start max-w-6xl mx-auto">
+            <div className="lg:col-span-3">
+              <ChatMockup />
+            </div>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, delay: 0.6 }}
+              className="lg:col-span-2 space-y-4"
+            >
+              <h3 className="font-display font-bold text-lg text-foreground mb-2">Como funciona na prática</h3>
+              {[
+                { icon: Bot, title: 'Bot Inteligente', desc: 'Responde comandos naturais como "add coca 3" e processa pedidos automaticamente.' },
+                { icon: Gauge, title: 'Estoque em Tempo Real', desc: 'Cada venda atualiza o estoque instantaneamente. Alertas automáticos de reposição.' },
+                { icon: Clock, title: 'Relatórios Instantâneos', desc: 'Peça "resumo do dia" e receba faturamento, ticket médio e top produtos.' },
+                { icon: Wifi, title: 'Zero Infraestrutura', desc: 'Funciona 100% via WhatsApp. Sem app, sem hardware, sem complicação.' },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: 0.7 + i * 0.15 }}
+                  className="flex gap-3 p-4 rounded-2xl border border-border bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all group"
+                >
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors">
+                    <item.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground mb-0.5">{item.title}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
         </div>
       </section>
 
