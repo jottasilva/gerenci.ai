@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         display: ["Syne", "sans-serif"],
+        hero: ["Space Grotesk", "sans-serif"],
         body: ["DM Sans", "sans-serif"],
       },
       colors: {
