@@ -1,4 +1,4 @@
-import { DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, ChevronRight, Loader2 } from 'lucide-react';
+import { DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, ChevronRight, Loader2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart, Cell } from 'recharts';
 import { KPICard } from '@/components/shared/KPICard';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useGetProducts } from '@/services/product.service';
 import { useGetOrders } from '@/services/order.service';
 import { useGetCustomers } from '@/services/customer.service';
+import { exportToCSV } from '@/utils/exportUtils';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -62,9 +63,43 @@ export default function Dashboard() {
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
 
+  const handleExport = () => {
+    const reportData = [
+      { metrica: 'Faturamento Total', valor: `R$ ${totalFaturamento.toFixed(2)}` },
+      { metrica: 'Ticket Médio', valor: `R$ ${ticketMedio.toFixed(2)}` },
+      { metrica: 'Total de Pedidos', valor: orders.length },
+      { metrica: 'Clientes Base', valor: customers.length },
+    ];
+
+    // Aggregating more detailed data if needed
+    const topProdData = topProdutos.map(p => ({
+      produto: p.nome,
+      total_vendas: `R$ ${p.total.toFixed(2)}`
+    }));
+
+    const stockAlertData = produtosEstoqueBaixo.map(p => ({
+      produto: p.name,
+      estoque_atual: p.stock,
+      estoque_minimo: p.stock_min
+    }));
+
+    // For a simple single-file export, we combine or pick the most useful
+    // Let's export a summary and the top products
+    exportToCSV('relatorio_dashboard', [
+      ...reportData.map(r => ({ Categoria: 'KPI', Item: r.metrica, Valor: r.valor })),
+      ...topProdData.map(p => ({ Categoria: 'Top Produto', Item: p.produto, Valor: p.total_vendas })),
+      ...stockAlertData.map(s => ({ Categoria: 'Alerta Estoque', Item: s.produto, Valor: `${s.estoque_atual} un` }))
+    ], ['CATEGORIA', 'ITEM', 'VALOR']);
+  };
+
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto pb-8">
-      <PageHeader titulo="Dashboard" subtitulo="Visão geral e inteligência do seu negócio" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <PageHeader titulo="Dashboard" subtitulo="Visão geral e inteligência do seu negócio" />
+        <Button onClick={handleExport} variant="outline" className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 font-bold h-11 px-6 sm:w-auto w-full">
+          <FileDown className="mr-2 h-4 w-4" /> Exportar Relatório
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard titulo="Faturamento Total" valor={`R$ ${totalFaturamento.toFixed(2).replace('.', ',')}`} variacao={15.2} icon={DollarSign} />
