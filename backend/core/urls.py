@@ -1,0 +1,41 @@
+from django.contrib import admin
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from accounts.views import UserViewSet, RegisterView
+from stores.views import StoreViewSet, StoreSettingsView
+from products.views import ProductViewSet, CategoryViewSet, StockMovementViewSet
+from customers.views import CustomerViewSet
+from orders.views import OrderViewSet
+from billing.views import BillingViewSet, SubscriptionPlanViewSet, LicenseKeyViewSet
+
+router = DefaultRouter()
+router.register(r'users', UserViewSet)
+router.register(r'stores', StoreViewSet)
+router.register(r'products', ProductViewSet)
+router.register(r'categories', CategoryViewSet)
+router.register(r'stock-movements', StockMovementViewSet)
+router.register(r'customers', CustomerViewSet)
+router.register(r'orders', OrderViewSet)
+router.register(r'plans', SubscriptionPlanViewSet, basename='plan')
+router.register(r'license-keys', LicenseKeyViewSet, basename='license-key')
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/', include(router.urls)),
+
+    # Auth
+    path('api/auth/register/', RegisterView.as_view(), name='register'),
+    path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # Store settings
+    path('api/store/me/', StoreSettingsView.as_view(), name='store-settings'),
+
+    # Billing actions (non-CRUD)
+    path('api/billing/status/', BillingViewSet.as_view({'get': 'status'}), name='billing-status'),
+    path('api/billing/plans/', BillingViewSet.as_view({'get': 'plans'}), name='billing-plans'),
+    path('api/billing/subscribe/', BillingViewSet.as_view({'post': 'subscribe'}), name='billing-subscribe'),
+    path('api/billing/history/', BillingViewSet.as_view({'get': 'history'}), name='billing-history'),
+]

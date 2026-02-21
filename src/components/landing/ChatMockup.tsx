@@ -10,7 +10,7 @@ interface Message {
 }
 
 const initialMessages: Message[] = [
-  { from: 'bot', text: 'Olá! 👋 Bem-vindo ao ZapPDV.\nDigite *menu* para ver as opções.', time: '14:20' },
+  { from: 'bot', text: 'Olá! 👋 Bem-vindo ao *Gerenc.ai*. Me chamo *Amélia*.\nDigite *menu* para ver as opções.', time: '14:20' },
 ];
 
 function getTime() {
@@ -35,6 +35,33 @@ export function ChatMockup() {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    const runScript = async () => {
+      const script = [
+        { text: 'menu', delay: 2000 },
+        { text: '1', delay: 2500 },
+        { text: 'João Silva', delay: 2000 },
+        { text: 'add coca 2', delay: 2500 },
+        { text: 'fechar', delay: 2000 },
+        { text: '1', delay: 2500 },
+      ];
+
+      for (const step of script) {
+        await new Promise(resolve => timeout = setTimeout(resolve, step.delay));
+        processInput(step.text);
+      }
+
+      await new Promise(resolve => timeout = setTimeout(resolve, 10000));
+      setMessages(initialMessages);
+      setBotState('idle');
+      runScript();
+    };
+
+    runScript();
+    return () => clearTimeout(timeout);
+  }, []);
 
   const addMsg = (from: 'user' | 'bot', text: string) => {
     setMessages(prev => [...prev, { from, text, time: getTime() }]);
@@ -111,7 +138,9 @@ export function ChatMockup() {
         if (forma) {
           setBotState('idle');
           setCart([]);
-          addMsg('bot', `✅ *Pedido confirmado!*\n\n🧾 Pagamento: ${forma}\n👤 Cliente: ${cliente}\n\nDigite *menu* para novo pedido.`);
+          const now = new Date();
+          const dateTime = `${now.toLocaleDateString('pt-BR')} às ${getTime()}`;
+          addMsg('bot', `✅ *Venda Finalizada!*\n\n👤 *Cliente:* ${cliente}\n💼 *Vendedor:* Amélia\n🧾 *Pagamento:* ${forma}\n📅 *Data:* ${dateTime}\n\nDigite *menu* para novo pedido.`);
         } else {
           addMsg('bot', 'Digite 1, 2, 3 ou 4 para escolher a forma de pagamento.');
         }
@@ -134,11 +163,11 @@ export function ChatMockup() {
       className="rounded-3xl border border-border bg-card overflow-hidden shadow-2xl"
     >
       <div className="bg-surface-2 px-4 py-3 flex items-center gap-3 border-b border-border">
-        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-          <span className="text-primary font-display font-bold text-base">Z</span>
+        <div className="h-10 w-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center p-1.5">
+          <img src="/src/assets/logo.svg" alt="ZapPDV" className="w-full h-full object-contain" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-foreground">ZapPDV Bot</p>
+          <p className="text-sm font-semibold text-foreground">Gerenc.ai | Amélia</p>
           <p className="text-xs text-primary">online</p>
         </div>
       </div>
@@ -155,15 +184,13 @@ export function ChatMockup() {
             transition={{ duration: 0.3 }}
             className={`flex ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
-              msg.from === 'user'
-                ? 'bg-primary/20 text-foreground rounded-br-md'
-                : 'bg-surface-2 text-foreground rounded-bl-md'
-            }`}>
+            <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${msg.from === 'user'
+              ? 'bg-primary/20 text-foreground rounded-br-md'
+              : 'bg-surface-2 text-foreground rounded-bl-md'
+              }`}>
               <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
-              <p className={`text-[10px] mt-1 text-right ${
-                msg.from === 'user' ? 'text-primary/60' : 'text-muted-foreground/60'
-              }`}>{msg.time}</p>
+              <p className={`text-[10px] mt-1 text-right ${msg.from === 'user' ? 'text-primary/60' : 'text-muted-foreground/60'
+                }`}>{msg.time}</p>
             </div>
           </motion.div>
         ))}

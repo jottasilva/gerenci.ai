@@ -24,11 +24,11 @@ export const pedidosMock: Pedido[] = [
 ];
 
 export const clientesMock: Cliente[] = [
-  { id: 'c1', nome: 'João Silva', whatsapp: '11999001122', email: 'joao@email.com', endereco: 'Rua A, 123', total_compras: 487.50 },
-  { id: 'c2', nome: 'Maria Santos', whatsapp: '11988112233', email: 'maria@email.com', endereco: 'Av B, 456', total_compras: 1230.00 },
-  { id: 'c3', nome: 'Pedro Alves', whatsapp: '11977223344', total_compras: 89.00 },
-  { id: 'c4', nome: 'Ana Costa', whatsapp: '11966334455', email: 'ana@email.com', total_compras: 356.00 },
-  { id: 'c5', nome: 'Carlos Lima', whatsapp: '11955445566', total_compras: 67.50 },
+  { id: 'c1', nome: 'João Silva', whatsapp: '11999001122', email: 'joao@email.com', endereco: 'Rua A, 123', total_compras: 487.50, ativo: true },
+  { id: 'c2', nome: 'Maria Santos', whatsapp: '11988112233', email: 'maria@email.com', endereco: 'Av B, 456', total_compras: 1230.00, ativo: true },
+  { id: 'c3', nome: 'Pedro Alves', whatsapp: '11977223344', total_compras: 89.00, ativo: true },
+  { id: 'c4', nome: 'Ana Costa', whatsapp: '11966334455', email: 'ana@email.com', total_compras: 356.00, ativo: true },
+  { id: 'c5', nome: 'Carlos Lima', whatsapp: '11955445566', total_compras: 67.50, ativo: true },
 ];
 
 export const operadoresMock: Operador[] = [

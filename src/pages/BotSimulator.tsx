@@ -219,8 +219,8 @@ export default function BotSimulator() {
         <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-2xl">
           {/* Header */}
           <div className="bg-surface-2 px-4 py-3 flex items-center gap-3 border-b border-border">
-            <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center">
-              <span className="text-primary font-display font-bold text-sm">Z</span>
+            <div className="h-9 w-9 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center p-1">
+              <img src="/src/assets/logo.svg" alt="ZapPDV" className="w-full h-full object-contain" />
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">ZapPDV Bot</p>
@@ -236,15 +236,13 @@ export default function BotSimulator() {
           >
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${
-                  msg.from === 'user'
-                    ? 'bg-primary/20 text-foreground rounded-br-md'
-                    : 'bg-surface-2 text-foreground rounded-bl-md'
-                }`}>
+                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${msg.from === 'user'
+                  ? 'bg-primary/20 text-foreground rounded-br-md'
+                  : 'bg-surface-2 text-foreground rounded-bl-md'
+                  }`}>
                   <p className="whitespace-pre-line leading-relaxed">{msg.text.replace(/\*(.*?)\*/g, '$1')}</p>
-                  <p className={`text-[10px] mt-1 text-right ${
-                    msg.from === 'user' ? 'text-primary/60' : 'text-muted-foreground/60'
-                  }`}>{msg.time}</p>
+                  <p className={`text-[10px] mt-1 text-right ${msg.from === 'user' ? 'text-primary/60' : 'text-muted-foreground/60'
+                    }`}>{msg.time}</p>
                 </div>
               </div>
             ))}

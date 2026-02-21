@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { PrivateRoute } from "@/components/auth/PrivateRoute";
+import { StoreProvider } from "@/contexts/StoreContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -12,12 +14,18 @@ import Produtos from "./pages/Produtos";
 import Estoque from "./pages/Estoque";
 import Clientes from "./pages/Clientes";
 import Operadores from "./pages/Operadores";
-import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
-import BotSimulator from "./pages/BotSimulator";
+import Assinaturas from "./pages/Assinaturas";
+import AdminKeys from "./pages/AdminKeys";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false, // Don't retry on 401
+    }
+  }
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -28,16 +36,18 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/bot-simulator" element={<BotSimulator />} />
-          <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/pedidos" element={<Pedidos />} />
-            <Route path="/produtos" element={<Produtos />} />
-            <Route path="/estoque" element={<Estoque />} />
-            <Route path="/clientes" element={<Clientes />} />
-            <Route path="/operadores" element={<Operadores />} />
-            <Route path="/relatorios" element={<Relatorios />} />
-            <Route path="/configuracoes" element={<Configuracoes />} />
+          <Route element={<PrivateRoute />}>
+            <Route element={<StoreProvider><DashboardLayout /></StoreProvider>}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/pedidos" element={<Pedidos />} />
+              <Route path="/produtos" element={<Produtos />} />
+              <Route path="/estoque" element={<Estoque />} />
+              <Route path="/clientes" element={<Clientes />} />
+              <Route path="/operadores" element={<Operadores />} />
+              <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="/assinaturas" element={<Assinaturas />} />
+              <Route path="/admin/keys" element={<AdminKeys />} />
+            </Route>
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

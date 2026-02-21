@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
+import {
   ShoppingCart, Package, BarChart3, Users, Bell, Shield,
   MessageSquare, ArrowRight, Check, Star, Zap, Bot, Gauge, Clock, Wifi,
   LayoutDashboard, Mail, Phone, MapPin
@@ -50,12 +50,22 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-background/80 backdrop-blur-xl border-b border-border' : ''
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="font-display font-extrabold text-xl text-foreground">
-            Zap<span className="text-primary">PDV</span>
+      <nav className={`fixed left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'top-0 bg-background/80 backdrop-blur-xl border-b border-border' : 'top-4'
+        }`}>
+        <div className="w-[70vw] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link
+            to="/"
+            onClick={(e) => {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="flex items-center h-14 w-48"
+          >
+            <img
+              src="/src/assets/logo.svg"
+              alt="ZapPDV"
+              className="w-full h-full object-contain"
+            />
           </Link>
           <div className="hidden md:flex items-center gap-8">
             <a href="#recursos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Recursos</a>
@@ -78,7 +88,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-32 pb-24 px-4 overflow-hidden">
+      <section className="relative pt-40 pb-24 px-4 overflow-hidden">
         <AnimatedBackground />
         {/* Gradient overlays */}
         <div className="absolute inset-0 pointer-events-none">
@@ -86,7 +96,7 @@ export default function LandingPage() {
           <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/5 blur-[120px] animate-float [animation-delay:1.5s]" />
         </div>
 
-        <div className="max-w-7xl mx-auto relative z-10">
+        <div className="w-[70vw] mx-auto relative z-10">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -125,11 +135,6 @@ export default function LandingPage() {
                   Testar grátis 14 dias <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link to="/bot-simulator">
-                <Button size="lg" variant="outline" className="border-border text-foreground rounded-xl px-8 hover:bg-muted text-base h-12">
-                  <MessageSquare className="mr-2 h-5 w-5" /> Ver como funciona
-                </Button>
-              </Link>
             </motion.div>
             <motion.div
               initial={{ opacity: 0 }}
@@ -144,7 +149,7 @@ export default function LandingPage() {
           </div>
 
           {/* Bot simulator + System info */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start w-[70vw] mx-auto">
             <div className="lg:col-span-3">
               <ChatMockup />
             </div>
@@ -184,7 +189,7 @@ export default function LandingPage() {
 
       {/* Features */}
       <section id="recursos" className="py-20 px-4">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-[70vw] mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-display font-bold text-foreground mb-3">Tudo que você precisa para vender</h2>
             <p className="text-muted-foreground">Recursos pensados para o dia a dia do lojista brasileiro</p>
@@ -213,7 +218,7 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section id="como-funciona" className="py-20 px-4">
-        <div className="max-w-5xl mx-auto">
+        <div className="w-[70vw] mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-display font-bold text-foreground mb-3">Como funciona</h2>
             <p className="text-muted-foreground">Comece a vender em 5 passos simples</p>
@@ -244,7 +249,7 @@ export default function LandingPage() {
 
       {/* Pricing */}
       <section id="precos" className="py-20 px-4">
-        <div className="max-w-5xl mx-auto">
+        <div className="w-[70vw] mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-display font-bold text-foreground mb-3">Planos simples, sem surpresas</h2>
             <p className="text-muted-foreground">Comece grátis por 14 dias. Sem cartão de crédito.</p>
@@ -258,11 +263,10 @@ export default function LandingPage() {
                 whileInView="visible"
                 viewport={{ once: true }}
                 variants={fadeUp}
-                className={`rounded-2xl border p-6 transition-all hover:-translate-y-1 ${
-                  plan.highlight
-                    ? 'border-primary bg-primary/5 relative'
-                    : 'border-border bg-card'
-                }`}
+                className={`rounded-2xl border p-6 transition-all hover:-translate-y-1 ${plan.highlight
+                  ? 'border-primary bg-primary/5 relative'
+                  : 'border-border bg-card'
+                  }`}
               >
                 {plan.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -285,11 +289,10 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link to="/login">
-                  <Button className={`w-full rounded-xl font-bold ${
-                    plan.highlight
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                      : 'bg-muted text-foreground hover:bg-muted/80'
-                  }`}>
+                  <Button className={`w-full rounded-xl font-bold ${plan.highlight
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    : 'bg-muted text-foreground hover:bg-muted/80'
+                    }`}>
                     Começar grátis
                   </Button>
                 </Link>
@@ -301,7 +304,7 @@ export default function LandingPage() {
 
       {/* Footer CTA */}
       <section className="py-20 px-4">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="w-[70vw] mx-auto text-center">
           <h2 className="text-3xl font-display font-bold text-foreground mb-4">
             Comece a vender pelo WhatsApp hoje mesmo
           </h2>
@@ -323,12 +326,16 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border py-12 px-4">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-[70vw] mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             <div>
-              <span className="font-display font-extrabold text-lg text-foreground">
-                Zap<span className="text-primary">PDV</span>
-              </span>
+              <Link to="/" className="flex items-center mb-3 h-14 w-40">
+                <img
+                  src="/src/assets/logo.svg"
+                  alt="ZapPDV"
+                  className="w-full h-full object-contain"
+                />
+              </Link>
               <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
                 Transforme seu WhatsApp em um PDV completo. Venda, gerencie estoque e acompanhe relatórios em tempo real.
               </p>
@@ -339,7 +346,6 @@ export default function LandingPage() {
                 <li><a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a></li>
                 <li><a href="#precos" className="hover:text-foreground transition-colors">Preços</a></li>
                 <li><a href="#como-funciona" className="hover:text-foreground transition-colors">Como funciona</a></li>
-                <li><Link to="/bot-simulator" className="hover:text-foreground transition-colors">Simulador</Link></li>
               </ul>
             </div>
             <div>

@@ -1,35 +1,56 @@
 export interface Produto {
   id: string;
-  nome: string;
-  descricao?: string;
-  preco: number;
-  estoque: number;
-  estoque_min: number;
-  categoria: string;
+  name: string;
+  nome?: string; // Compatibility
+  description?: string;
+  descricao?: string; // Compatibility
+  price: number;
+  preco?: number; // Compatibility
+  stock: number;
+  estoque?: number; // Compatibility
+  stock_min: number;
+  estoque_min?: number; // Compatibility
+  category?: string | null;
+  categoria?: string; // Compatibility
+  category_name?: string;
+  categoria_name?: string; // Compatibility
   sku: string;
-  ativo: boolean;
+  is_active?: boolean;
+  ativo?: boolean; // Compatibility
 }
 
 export interface Pedido {
   id: string;
-  cliente: string;
-  cliente_id?: string;
-  operador?: string;
-  itens: ItemPedido[];
+  customer?: string;
+  cliente?: string; // Compatibility
+  cliente_name?: string;
+  cliente_name_manual?: string;
+  operator?: string;
+  operator_name?: string;
   total: number;
-  desconto: number;
-  forma_pagto: FormaPagamento;
+  discount: number;
+  desconto?: number; // Compatibility
+  payment_method: FormaPagamento;
+  forma_pagto?: FormaPagamento; // Compatibility
   status: StatusPedido;
-  observacao?: string;
-  hora: string;
-  criado_em: string;
+  notes?: string;
+  observacao?: string; // Compatibility
+  created_at: string;
+  criado_em?: string; // Compatibility
+  items: ItemPedido[];
+  itens?: ItemPedido[]; // Compatibility
 }
 
 export interface ItemPedido {
-  produto_id: string;
-  nome: string;
-  quantidade: number;
-  preco_unit: number;
+  id?: string;
+  product: string;
+  produto_id?: string; // Compatibility
+  product_name: string;
+  nome?: string; // Compatibility
+  quantity: number;
+  quantidade?: number; // Compatibility
+  unit_price: number;
+  preco_unit?: number; // Compatibility
   subtotal: number;
 }
 
@@ -39,26 +60,40 @@ export interface Cliente {
   whatsapp: string;
   email?: string;
   endereco?: string;
-  total_compras: number;
+  cpf_cnpj?: string;
+  total_compras: number | string;
+  ativo: boolean;
 }
 
 export interface Operador {
   id: string;
-  nome: string;
+  nome?: string; // Compatibility
+  first_name?: string;
+  last_name?: string;
+  store_name?: string;
   whatsapp: string;
   role: 'ADMIN' | 'GERENTE' | 'VENDEDOR';
-  ativo: boolean;
+  ativo?: boolean;
+  is_active?: boolean;
+  store?: string | null;
 }
 
 export interface MovimentoEstoque {
   id: string;
-  produto_id: string;
-  produto_nome: string;
-  tipo: 'ENTRADA' | 'SAIDA' | 'AJUSTE';
-  quantidade: number;
-  motivo: string;
-  operador: string;
-  criado_em: string;
+  product: string;
+  produto_id?: string; // Compatibility
+  product_name?: string;
+  produto_nome?: string; // Compatibility
+  type: 'ENTRADA' | 'SAIDA' | 'AJUSTE';
+  tipo?: 'ENTRADA' | 'SAIDA' | 'AJUSTE'; // Compatibility
+  quantity: number;
+  quantidade?: number; // Compatibility
+  reason: string;
+  motivo?: string; // Compatibility
+  operator_name?: string;
+  operador?: string; // Compatibility
+  created_at: string;
+  criado_em?: string; // Compatibility
 }
 
 export type StatusPedido = 'ABERTO' | 'CONFIRMADO' | 'EM_PREPARO' | 'ENTREGUE' | 'CANCELADO';

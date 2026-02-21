@@ -1,0 +1,84 @@
+from rest_framework import serializers
+from .models import Product, Category, StockMovement
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('id', 'name')
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    category_name = serializers.ReadOnlyField(source='category.name')
+
+    # Portuguese alias read fields for frontend compatibility
+    nome = serializers.CharField(source='name', read_only=True)
+    preco = serializers.DecimalField(source='price', max_digits=10, decimal_places=2, read_only=True)
+    estoque = serializers.IntegerField(source='stock', read_only=True)
+    estoque_min = serializers.IntegerField(source='min_stock', read_only=True)
+    ativo = serializers.BooleanField(source='is_active', read_only=True)
+    categoria = serializers.SerializerMethodField()
+
+    def get_categoria(self, obj):
+        return obj.category.name if obj.category else None
+
+    class Meta:
+        model = Product
+        fields = (
+            'id', 'name', 'description', 'price', 'stock', 'min_stock',
+            'category', 'category_name', 'sku', 'is_active',
+            # Portuguese aliases (read-only, for frontend)
+            'nome', 'preco', 'estoque', 'estoque_min', 'ativo', 'categoria',
+        )
+        read_only_fields = ('store',)
+
+    def to_internal_value(self, data):
+        """Accept both English and Portuguese field names on write."""
+        mapped = dict(data)
+        # Map Portuguese -> English for write operations (Portuguese takes precedence)
+        if 'nome' in mapped:
+            mapped['name'] = mapped.pop('nome')
+        if 'preco' in mapped:
+            mapped['price'] = mapped.pop('preco')
+        if 'estoque' in mapped:
+            mapped['stock'] = mapped.pop('estoque')
+        if 'estoque_min' in mapped:
+            mapped['min_stock'] = mapped.pop('estoque_min')
+        if 'stock_min' in mapped:
+            mapped['min_stock'] = mapped.pop('stock_min')
+        if 'ativo' in mapped:
+            mapped['is_active'] = mapped.pop('ativo')
+
+        # Handle category: if it's an empty string or "TODOS", set to None
+        if 'category' in mapped and (mapped['category'] == '' or mapped['category'] == 'TODOS'):
+            mapped['category'] = None
+
+        # Remove read-only Portuguese aliases from write data
+        for key in ('categoria',):
+            mapped.pop(key, None)
+        return super().to_internal_value(mapped)
+
+
+class StockMovementSerializer(serializers.ModelSerializer):
+    product_name = serializers.ReadOnlyField(source='product.name')
+    operator_name = serializers.ReadOnlyField(source='operator.first_name')
+
+    # Portuguese alias
+    tipo = serializers.CharField(source='movement_type', read_only=True)
+    quantidade = serializers.IntegerField(source='quantity', read_only=True)
+    motivo = serializers.CharField(source='reason', read_only=True, allow_null=True)
+
+    class Meta:
+        model = StockMovement
+        fields = '__all__'
+        read_only_fields = ('store',)
+
+    def to_internal_value(self, data):
+        mapped = dict(data)
+        if 'tipo' in mapped and 'movement_type' not in mapped:
+            mapped['movement_type'] = mapped.pop('tipo')
+        if 'quantidade' in mapped and 'quantity' not in mapped:
+            mapped['quantity'] = mapped.pop('quantidade')
+        if 'motivo' in mapped and 'reason' not in mapped:
+            mapped['reason'] = mapped.pop('motivo')
+        return super().to_internal_value(mapped)
