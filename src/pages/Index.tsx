@@ -27,11 +27,11 @@ const features = [
 ];
 
 const steps = [
-  'Conecte seu WhatsApp',
-  'Cadastre seus produtos',
-  'Adicione sua equipe',
-  'Comece a vender pelo chat',
-  'Acompanhe pelo painel',
+  { title: 'Conecte seu WhatsApp', icon: Wifi },
+  { title: 'Cadastre seus produtos', icon: Package },
+  { title: 'Adicione sua equipe', icon: Users },
+  { title: 'Comece a vender pelo chat', icon: MessageSquare },
+  { title: 'Acompanhe pelo painel', icon: LayoutDashboard },
 ];
 
 const plans = [
@@ -270,30 +270,73 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section id="como-funciona" className="py-20 px-4">
-        <div className="w-[80vw] md:max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-display font-bold text-foreground mb-3">Como funciona</h2>
-            <p className="text-muted-foreground">Comece a vender em 5 passos simples</p>
+      <section id="como-funciona" className="py-24 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-primary/[0.02] -skew-y-3 transform origin-right" />
+
+        <div className="w-[80vw] md:max-w-7xl mx-auto relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4 font-hero">Como funciona</h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Tudo o que você precisa em 5 passos simples para transformar seu atendimento</p>
           </div>
-          <div className="flex flex-col md:flex-row items-start justify-between gap-4">
+
+          {/* Desktop Stepper */}
+          <div className="hidden md:flex items-start justify-between gap-4 relative">
+            <div className="absolute top-12 left-0 right-0 h-0.5 bg-border z-0" />
             {steps.map((step, i) => (
               <motion.div
-                key={step}
+                key={step.title}
                 custom={i}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
                 variants={fadeUp}
-                className="flex-1 text-center"
+                className="flex-1 flex flex-col items-center text-center relative z-10"
               >
-                <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3 font-display font-bold text-primary">
-                  {i + 1}
+                <div className="h-24 w-24 rounded-3xl bg-card border border-border shadow-sm flex items-center justify-center mb-6 group hover:border-primary/50 hover:shadow-primary/10 transition-all duration-300">
+                  <div className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-sm shadow-lg">
+                    {i + 1}
+                  </div>
+                  <step.icon className="h-10 w-10 text-primary group-hover:scale-110 transition-transform duration-300" />
                 </div>
-                <p className="text-sm font-medium text-foreground">{step}</p>
-                {i < steps.length - 1 && (
-                  <div className="hidden md:block h-px w-full bg-border mt-6" />
-                )}
+                <h3 className="text-sm font-bold text-foreground max-w-[150px] leading-tight">
+                  {step.title}
+                </h3>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Mobile Stepper */}
+          <div className="md:hidden space-y-12 relative before:absolute before:left-[23px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gradient-to-b before:from-primary/50 before:via-primary/20 before:to-transparent">
+            {steps.map((step, i) => (
+              <motion.div
+                key={step.title}
+                custom={i}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeUp}
+                className="flex gap-6 relative"
+              >
+                <div className="relative z-10">
+                  <div className="h-12 w-12 rounded-2xl bg-card border border-border flex items-center justify-center shadow-sm">
+                    <step.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-[10px] shadow-md">
+                    {i + 1}
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <h3 className="text-lg font-bold text-foreground mb-1 leading-tight">
+                    {step.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {i === 0 && 'Configure seu bot em minutos e conecte com seu WhatsApp profissional.'}
+                    {i === 1 && 'Importe sua planilha ou cadastre seus produtos pelo próprio chat.'}
+                    {i === 2 && 'Crie acessos para seus vendedores com diferentes permissões.'}
+                    {i === 3 && 'Receba pedidos automáticos e responda comandos naturais.'}
+                    {i === 4 && 'Acompanhe tudo em tempo real pelo seu dashboard exclusivo.'}
+                  </p>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -413,7 +456,7 @@ export default function LandingPage() {
             <div>
               <h4 className="font-display font-bold text-foreground mb-3">Contato</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> gerencia@zappdv.com</li>
+                <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> contato@gerencia.store</li>
                 <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (43) 98844-1992</li>
                 <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Jacarezinho, PR</li>
               </ul>
