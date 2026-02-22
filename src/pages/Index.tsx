@@ -4,11 +4,18 @@ import { motion } from 'framer-motion';
 import {
   ShoppingCart, Package, BarChart3, Users, Bell, Shield,
   MessageSquare, ArrowRight, Check, Star, Zap, Bot, Gauge, Clock, Wifi,
-  LayoutDashboard, Mail, Phone, MapPin
+  LayoutDashboard, Mail, Phone, MapPin, Menu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChatMockup } from '@/components/landing/ChatMockup';
 import { AnimatedBackground } from '@/components/landing/AnimatedBackground';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const features = [
   { icon: ShoppingCart, title: 'PDV por mensagem', desc: 'Abra pedidos e feche vendas sem sair do chat' },
@@ -49,10 +56,9 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navbar */}
       <nav className={`fixed left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'top-0 bg-background/80 backdrop-blur-xl border-b border-border' : 'top-4'
         }`}>
-        <div className="w-[70vw] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link
             to="/"
             onClick={(e) => {
@@ -68,19 +74,66 @@ export default function LandingPage() {
             />
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#recursos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Recursos</a>
-            <a href="#como-funciona" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Como funciona</a>
-            <a href="#precos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Preços</a>
+            <a href="#recursos" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">Recursos</a>
+            <a href="#como-funciona" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">Como funciona</a>
+            <a href="#precos" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">Preços</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/dashboard">
-              <Button variant="outline" className="border-border text-foreground rounded-xl hidden sm:inline-flex">
-                <LayoutDashboard className="mr-2 h-4 w-4" /> Painel
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl">
-                Começar grátis
+            <div className="hidden sm:flex items-center gap-3">
+              <Link to="/dashboard">
+                <Button variant="outline" className="border-border text-foreground rounded-xl">
+                  <LayoutDashboard className="mr-2 h-4 w-4" /> Painel
+                </Button>
+              </Link>
+              <Link to="/login">
+                <Button className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl">
+                  Começar grátis
+                </Button>
+              </Link>
+            </div>
+
+            {/* Mobile Menu */}
+            <div className="md:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                  <SheetHeader>
+                    <SheetTitle className="text-left">
+                      <img
+                        src="/src/assets/logo.svg"
+                        alt="ZapPDV"
+                        className="h-8 object-contain"
+                      />
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col gap-6 mt-12 px-2">
+                    <a href="#recursos" className="text-lg font-medium hover:text-primary transition-colors">Recursos</a>
+                    <a href="#como-funciona" className="text-lg font-medium hover:text-primary transition-colors">Como funciona</a>
+                    <a href="#precos" className="text-lg font-medium hover:text-primary transition-colors">Preços</a>
+                    <div className="h-px bg-border my-2" />
+                    <Link to="/dashboard" className="w-full">
+                      <Button variant="outline" className="w-full justify-start text-lg h-12 rounded-xl">
+                        <LayoutDashboard className="mr-3 h-5 w-5" /> Painel
+                      </Button>
+                    </Link>
+                    <Link to="/login" className="w-full">
+                      <Button className="w-full text-lg h-12 rounded-xl font-bold">
+                        Começar grátis
+                      </Button>
+                    </Link>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            {/* Always visible on small screens (non-desktop) but hidden when dashboard link is visible */}
+            <Link to="/login" className="sm:hidden">
+              <Button className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl px-4 py-2 text-sm h-9">
+                Grátis
               </Button>
             </Link>
           </div>
@@ -96,8 +149,8 @@ export default function LandingPage() {
           <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/5 blur-[120px] animate-float [animation-delay:1.5s]" />
         </div>
 
-        <div className="w-[70vw] mx-auto relative z-10">
-          <div className="max-w-3xl mx-auto text-center mb-16">
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
+          <div className="max-w-3xl mx-auto text-center mb-16 px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -149,7 +202,7 @@ export default function LandingPage() {
           </div>
 
           {/* Bot simulator + System info */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start w-[70vw] mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start max-w-7xl mx-auto px-4">
             <div className="lg:col-span-3">
               <ChatMockup />
             </div>
@@ -189,7 +242,7 @@ export default function LandingPage() {
 
       {/* Features */}
       <section id="recursos" className="py-20 px-4">
-        <div className="w-[70vw] mx-auto">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-display font-bold text-foreground mb-3">Tudo que você precisa para vender</h2>
             <p className="text-muted-foreground">Recursos pensados para o dia a dia do lojista brasileiro</p>
@@ -218,7 +271,7 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section id="como-funciona" className="py-20 px-4">
-        <div className="w-[70vw] mx-auto">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-display font-bold text-foreground mb-3">Como funciona</h2>
             <p className="text-muted-foreground">Comece a vender em 5 passos simples</p>
@@ -249,7 +302,7 @@ export default function LandingPage() {
 
       {/* Pricing */}
       <section id="precos" className="py-20 px-4">
-        <div className="w-[70vw] mx-auto">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-display font-bold text-foreground mb-3">Planos simples, sem surpresas</h2>
             <p className="text-muted-foreground">Comece grátis por 14 dias. Sem cartão de crédito.</p>
@@ -304,7 +357,7 @@ export default function LandingPage() {
 
       {/* Footer CTA */}
       <section className="py-20 px-4">
-        <div className="w-[70vw] mx-auto text-center">
+        <div className="max-w-7xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-display font-bold text-foreground mb-4">
             Comece a vender pelo WhatsApp hoje mesmo
           </h2>
@@ -325,8 +378,8 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-12 px-4">
-        <div className="w-[70vw] mx-auto">
+      <footer className="border-t border-border py-12 px-4 shadow-sm bg-card/10">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             <div>
               <Link to="/" className="flex items-center mb-3 h-14 w-40">
