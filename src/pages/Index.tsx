@@ -68,7 +68,7 @@ export default function LandingPage() {
             className="flex items-center h-14 w-48"
           >
             <img
-              src="/src/logo.svg"
+              src="/src/logo.png"
               alt="ZapPDV"
               className="w-full h-full object-contain"
             />
@@ -104,7 +104,7 @@ export default function LandingPage() {
                   <SheetHeader>
                     <SheetTitle className="text-left">
                       <img
-                        src="/src/logo.svg"
+                        src="/src/logo.png"
                         alt="ZapPDV"
                         className="h-8 object-contain"
                       />
@@ -384,7 +384,7 @@ export default function LandingPage() {
             <div>
               <Link to="/" className="flex items-center mb-3 h-14 w-40">
                 <img
-                  src="/src/logo.svg"
+                  src="/src/logo.png"
                   alt="ZapPDV"
                   className="w-full h-full object-contain"
                 />
