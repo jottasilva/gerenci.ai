@@ -9,9 +9,7 @@ interface Message {
   time: string;
 }
 
-const initialMessages: Message[] = [
-  { from: 'bot', text: 'Olá! 👋 Bem-vindo ao *Gerenc.ai*. Me chamo *Amélia*.\nDigite *menu* para ver as opções.', time: '14:20' },
-];
+const initialMessages: Message[] = [];
 
 function getTime() {
   const d = new Date();
@@ -39,27 +37,67 @@ export function ChatMockup() {
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     const runScript = async () => {
-      const script = [
-        { text: 'menu', delay: 2000 },
-        { text: '1', delay: 2500 },
-        { text: 'João Silva', delay: 2000 },
-        { text: 'add coca 2', delay: 2500 },
-        { text: 'fechar', delay: 2000 },
-        { text: '1', delay: 2500 },
+      const saleScript: { from: 'user' | 'bot', text: string, delay: number }[] = [
+        { from: 'bot', text: 'Olá João 👋\nBem-vindo novamente!\n\nComo posso te ajudar hoje?\n\n1️⃣ Ver produtos\n2️⃣ Consultar estoque\n3️⃣ Fazer pedido\n4️⃣ Falar com atendente', delay: 1000 },
+        { from: 'user', text: '1', delay: 2500 },
+        { from: 'bot', text: '📦 Produtos disponíveis hoje:\n\n1️⃣ Camiseta Preta Premium\n2️⃣ Boné Personalizado\n3️⃣ Caneca Personalizada\n\nDigite o número do produto para ver detalhes.', delay: 2000 },
+        { from: 'user', text: '1', delay: 2500 },
+        { from: 'bot', text: '🧾 Camiseta Preta Premium\n\n✔️ Tamanhos: P, M, G, GG\n✔️ Valor: R$ 59,90\n\n📦 Estoque atual: 8 unidades\n\nDeseja comprar?\n\n1️⃣ Sim\n2️⃣ Voltar', delay: 2000 },
+        { from: 'user', text: 'Sim', delay: 2500 },
+        { from: 'bot', text: 'Perfeito 👍\n\nQual tamanho você deseja?\n(P / M / G / GG)', delay: 1500 },
+        { from: 'user', text: 'M', delay: 2000 },
+        { from: 'bot', text: 'Quantas unidades você deseja?', delay: 1500 },
+        { from: 'user', text: '2', delay: 2000 },
+        { from: 'bot', text: '🔄 Verificando estoque…\n\n✔️ Estoque disponível!\n\nResumo do pedido:\nProduto: Camiseta Preta Premium\nTamanho: M\nQuantidade: 2\nTotal: R$ 119,80\n\nDeseja confirmar o pedido?\n\n1️⃣ Confirmar compra\n2️⃣ Cancelar', delay: 3000 },
+        { from: 'user', text: '1', delay: 2500 },
+        { from: 'bot', text: '🎉 Pedido confirmado com sucesso!\n\n🔄 Atualizando estoque…\n\n📦 Novo estoque: 6 unidades\n\nSeu pedido já foi registrado 👍\n\nDeseja mais alguma coisa?\n\n1️⃣ Continuar comprando\n2️⃣ Finalizar pedido', delay: 2500 },
+        { from: 'user', text: 'Finalizar', delay: 2500 },
+        { from: 'bot', text: 'Perfeito João 👍\n\nSeu pedido foi finalizado com sucesso.\nEm instantes você receberá os detalhes de pagamento e entrega.\n\nObrigado pela compra 🚀', delay: 2000 },
       ];
 
-      for (const step of script) {
-        await new Promise(resolve => timeout = setTimeout(resolve, step.delay));
-        processInput(step.text);
-      }
+      const reportScript: { from: 'user' | 'bot', text: string, delay: number }[] = [
+        { from: 'bot', text: 'Olá João 👋\n\nO que deseja fazer hoje?\n\n1️⃣ Ver relatório de vendas\n2️⃣ Atualizar estoque\n3️⃣ Consultar produtos\n4️⃣ Voltar ao menu', delay: 1000 },
+        { from: 'user', text: '1', delay: 2500 },
+        { from: 'bot', text: '📊 Relatório rápido — Hoje\n\n🧾 Total de vendas: 12\n💰 Faturamento: R$ 1.248,00\n📦 Produtos vendidos: 18 unidades\n🔥 Produto mais vendido: Camiseta Preta Premium\n\nDeseja ver mais detalhes?\n\n1️⃣ Relatório completo\n2️⃣ Ver estoque atual\n3️⃣ Voltar', delay: 2500 },
+        { from: 'user', text: '1', delay: 2500 },
+        { from: 'bot', text: '📊 Relatório completo — Hoje\n\n✔️ Camiseta Preta Premium — 8 vendas\n✔️ Boné Personalizado — 3 vendas\n✔️ Caneca Personalizada — 1 venda\n\n💰 Ticket médio: R$ 104,00\n📈 Comparado a ontem: +18%\n\nDeseja realizar alguma ação?\n\n1️⃣ Atualizar estoque\n2️⃣ Ver produtos com estoque baixo\n3️⃣ Voltar ao menu', delay: 3000 },
+        { from: 'user', text: '2', delay: 2500 },
+        { from: 'bot', text: '⚠️ Produtos com estoque baixo:\n\n📦 Camiseta Preta Premium — 4 unidades\n📦 Caneca Personalizada — 2 unidades\n\nDeseja atualizar algum estoque?\n\n1️⃣ Sim\n2️⃣ Não', delay: 2500 },
+        { from: 'user', text: '1', delay: 2500 },
+        { from: 'bot', text: 'Digite o nome do produto ou número:\n\n1️⃣ Camiseta Preta Premium\n2️⃣ Caneca Personalizada', delay: 2000 },
+        { from: 'user', text: '1', delay: 2500 },
+        { from: 'bot', text: '📦 Estoque atual: 4 unidades\n\nQuantas unidades deseja adicionar?', delay: 2000 },
+        { from: 'user', text: '10', delay: 2000 },
+        { from: 'bot', text: '🔄 Atualizando estoque…\n\n✔️ Estoque atualizado com sucesso!\n\n📦 Novo estoque: 14 unidades\n\nDeseja fazer mais alguma alteração?\n\n1️⃣ Atualizar outro produto\n2️⃣ Ver relatório novamente\n3️⃣ Finalizar', delay: 2500 },
+        { from: 'user', text: '3', delay: 2500 },
+        { from: 'bot', text: 'Perfeito João 👍\n\nSeu estoque está atualizado e o relatório salvo no sistema.\n\nSempre que quiser, é só chamar 🚀', delay: 2500 },
+      ];
 
+      while (true) {
+        // Run Sale Script
+        setMessages([]);
+        for (const step of saleScript) {
+          await new Promise(resolve => timeout = setTimeout(resolve, step.delay));
+          addMsg(step.from, step.text);
+        }
+        await new Promise(resolve => timeout = setTimeout(resolve, 30000));
+
+        // Run Report Script
+        setMessages([]);
+        for (const step of reportScript) {
+          await new Promise(resolve => timeout = setTimeout(resolve, step.delay));
+          addMsg(step.from, step.text);
+        }
+        await new Promise(resolve => timeout = setTimeout(resolve, 30000));
+      }
+    };
+
+    const initiate = async () => {
       await new Promise(resolve => timeout = setTimeout(resolve, 10000));
-      setMessages(initialMessages);
-      setBotState('idle');
       runScript();
     };
 
-    runScript();
+    initiate();
     return () => clearTimeout(timeout);
   }, []);
 
