@@ -58,7 +58,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background">
       <nav className={`fixed left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'top-0 bg-background/80 backdrop-blur-xl border-b border-border' : 'top-4'
         }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="w-[80vw] md:max-w-7xl mx-auto h-16 flex items-center justify-between">
           <Link
             to="/"
             onClick={(e) => {
@@ -68,7 +68,7 @@ export default function LandingPage() {
             className="flex items-center h-14 w-48"
           >
             <img
-              src="/src/assets/logo.svg"
+              src="/src/logo.svg"
               alt="ZapPDV"
               className="w-full h-full object-contain"
             />
@@ -104,7 +104,7 @@ export default function LandingPage() {
                   <SheetHeader>
                     <SheetTitle className="text-left">
                       <img
-                        src="/src/assets/logo.svg"
+                        src="/src/logo.svg"
                         alt="ZapPDV"
                         className="h-8 object-contain"
                       />
@@ -149,8 +149,8 @@ export default function LandingPage() {
           <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/5 blur-[120px] animate-float [animation-delay:1.5s]" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center mb-16 px-4">
+        <div className="w-[80vw] md:max-w-7xl mx-auto relative z-10">
+          <div className="max-w-3xl mx-auto text-center mb-16">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -202,7 +202,7 @@ export default function LandingPage() {
           </div>
 
           {/* Bot simulator + System info */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start w-[80vw] md:max-w-7xl mx-auto">
             <div className="lg:col-span-3">
               <ChatMockup />
             </div>
@@ -242,7 +242,7 @@ export default function LandingPage() {
 
       {/* Features */}
       <section id="recursos" className="py-20 px-4">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-[80vw] md:max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-display font-bold text-foreground mb-3">Tudo que você precisa para vender</h2>
             <p className="text-muted-foreground">Recursos pensados para o dia a dia do lojista brasileiro</p>
@@ -271,7 +271,7 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section id="como-funciona" className="py-20 px-4">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-[80vw] md:max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-display font-bold text-foreground mb-3">Como funciona</h2>
             <p className="text-muted-foreground">Comece a vender em 5 passos simples</p>
@@ -302,7 +302,7 @@ export default function LandingPage() {
 
       {/* Pricing */}
       <section id="precos" className="py-20 px-4">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-[80vw] md:max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-display font-bold text-foreground mb-3">Planos simples, sem surpresas</h2>
             <p className="text-muted-foreground">Comece grátis por 14 dias. Sem cartão de crédito.</p>
@@ -357,7 +357,7 @@ export default function LandingPage() {
 
       {/* Footer CTA */}
       <section className="py-20 px-4">
-        <div className="max-w-7xl mx-auto px-4 text-center">
+        <div className="w-[80vw] md:max-w-7xl mx-auto text-center">
           <h2 className="text-3xl font-display font-bold text-foreground mb-4">
             Comece a vender pelo WhatsApp hoje mesmo
           </h2>
@@ -379,12 +379,12 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border py-12 px-4 shadow-sm bg-card/10">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-[80vw] md:max-w-7xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             <div>
               <Link to="/" className="flex items-center mb-3 h-14 w-40">
                 <img
-                  src="/src/assets/logo.svg"
+                  src="/src/logo.svg"
                   alt="ZapPDV"
                   className="w-full h-full object-contain"
                 />
@@ -413,9 +413,9 @@ export default function LandingPage() {
             <div>
               <h4 className="font-display font-bold text-foreground mb-3">Contato</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> contato@zappdv.com</li>
-                <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (11) 99999-0000</li>
-                <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> São Paulo, SP</li>
+                <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> gerencia@zappdv.com</li>
+                <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (43) 98844-1992</li>
+                <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Jacarezinho, PR</li>
               </ul>
             </div>
           </div>
