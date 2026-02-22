@@ -56,7 +56,7 @@ export function AppSidebar() {
       <div className="px-5 py-5 border-b border-border h-24 flex items-center justify-center">
         <RouterNavLink to="/" className="flex items-center justify-center w-full h-full">
           <img
-            src="/src/assets/logo.svg"
+            src="https://i.imgur.com/9bkJZlL.png"
             alt="Gerenc.AI"
             className="w-full h-full object-contain max-h-14"
           />

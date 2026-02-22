@@ -97,7 +97,7 @@ export default function Login() {
               className="mb-4 h-20 flex items-center justify-center"
             >
               <img
-                src="/src/assets/logo.svg"
+                src="https://i.imgur.com/9bkJZlL.png"
                 alt="ZapPDV"
                 className="w-full h-full object-contain max-h-16 drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]"
               />
