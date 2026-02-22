@@ -37,7 +37,10 @@ import {
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
-  useGetCategories
+  useGetCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory
 } from '@/services/product.service';
 import {
   Select,
@@ -54,10 +57,17 @@ export default function Produtos() {
   const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
 
+  const createCategoryMutation = useCreateCategory();
+  const updateCategoryMutation = useUpdateCategory();
+  const deleteCategoryMutation = useDeleteCategory();
+
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('TODOS');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Produto | null>(null);
+  const [editingCategory, setEditingCategory] = useState<{ id: number; name: string } | null>(null);
+  const [categoryName, setCategoryName] = useState('');
 
   const [formData, setFormData] = useState<Partial<Produto>>({
     name: '',
@@ -69,7 +79,7 @@ export default function Produtos() {
     is_active: true
   });
 
-  const categorias = ['TODOS', ...new Set(products.map(p => p.category_name).filter(Boolean))];
+  const categoriasFiltro = ['TODOS', ...categories.map((c: any) => c.name)];
 
   const filtered = products.filter(p => {
     const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) || (p.sku || '').toLowerCase().includes(search.toLowerCase());
@@ -123,6 +133,30 @@ export default function Produtos() {
     }
   };
 
+  const handleSaveCategory = async () => {
+    if (!categoryName) return;
+    try {
+      if (editingCategory) {
+        await updateCategoryMutation.mutateAsync({ id: editingCategory.id, name: categoryName });
+      } else {
+        await createCategoryMutation.mutateAsync({ name: categoryName });
+      }
+      setCategoryName('');
+      setEditingCategory(null);
+    } catch (err) { }
+  };
+
+  const handleEditCategory = (cat: { id: number; name: string }) => {
+    setEditingCategory(cat);
+    setCategoryName(cat.name);
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    if (window.confirm("Deseja realmente excluir esta categoria? Isso removerá o vínculo com todos os produtos.")) {
+      await deleteCategoryMutation.mutateAsync(id);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] gap-4 text-center px-4">
@@ -167,7 +201,7 @@ export default function Produtos() {
             <Tag className="h-4 w-4" /> Categorias
           </h3>
           <div className="flex flex-col gap-1">
-            {categorias.map(c => (
+            {categoriasFiltro.map(c => (
               <button
                 key={c}
                 onClick={() => setCatFilter(c)}
@@ -228,6 +262,13 @@ export default function Produtos() {
               </ScrollArea>
             </SheetContent>
           </Sheet>
+          <Button
+            variant="outline"
+            onClick={() => setIsCategoryDialogOpen(true)}
+            className="flex-1 sm:flex-none rounded-xl font-bold px-6 border-border h-12"
+          >
+            <Tag className="mr-2 h-5 w-5" /> Categorias
+          </Button>
           <Button
             onClick={() => handleOpenDialog()}
             className="flex-1 sm:flex-none rounded-xl font-bold px-6 shadow-lg shadow-primary/20 bg-primary text-primary-foreground hover:bg-primary/90 transition-all h-12"
@@ -478,6 +519,73 @@ export default function Produtos() {
               </div>
             </div>
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+      {/* Category Management Dialog */}
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Categorias</DialogTitle>
+            <DialogDescription>
+              Crie e edite as categorias dos seus produtos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 pt-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nome da categoria"
+                value={categoryName}
+                onChange={(e) => setCategoryName(e.target.value)}
+                className="rounded-xl h-11"
+              />
+              <Button onClick={handleSaveCategory} className="rounded-xl h-11">
+                {editingCategory ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+              </Button>
+              {editingCategory && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setCategoryName('');
+                  }}
+                  className="rounded-xl h-11"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
+
+            <ScrollArea className="h-64 pr-4">
+              <div className="space-y-2">
+                {categories.map((cat: any) => (
+                  <div
+                    key={cat.id}
+                    className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/50"
+                  >
+                    <span className="font-medium">{cat.name}</span>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditCategory(cat)}
+                        className="h-8 w-8 rounded-lg"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

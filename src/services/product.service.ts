@@ -14,6 +14,20 @@ export const productService = {
         return response.data;
     },
 
+    createCategory: async (category: { name: string }) => {
+        const response = await api.post('categories/', category);
+        return response.data;
+    },
+
+    updateCategory: async (category: { id: number; name: string }) => {
+        const response = await api.put(`categories/${category.id}/`, category);
+        return response.data;
+    },
+
+    deleteCategory: async (id: number) => {
+        await api.delete(`categories/${id}/`);
+    },
+
     createProduct: async (product: Omit<Produto, 'id'>): Promise<Produto> => {
         const response = await api.post('products/', product);
         return response.data;
@@ -51,6 +65,50 @@ export const useGetCategories = () => {
     return useQuery({
         queryKey: ['categories'],
         queryFn: productService.getCategories,
+    });
+};
+
+export const useCreateCategory = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: productService.createCategory,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+            toast.success("Categoria criada com sucesso!");
+        },
+        onError: (error: any) => {
+            toast.error(error.message || "Erro ao criar categoria.");
+        }
+    });
+};
+
+export const useUpdateCategory = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: productService.updateCategory,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] }); // Products might have category name updated
+            toast.success("Categoria atualizada com sucesso!");
+        },
+        onError: (error: any) => {
+            toast.error(error.message || "Erro ao atualizar categoria.");
+        }
+    });
+};
+
+export const useDeleteCategory = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: productService.deleteCategory,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            toast.success("Categoria removida com sucesso!");
+        },
+        onError: (error: any) => {
+            toast.error(error.message || "Erro ao remover categoria.");
+        }
     });
 };
 
