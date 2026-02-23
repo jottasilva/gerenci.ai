@@ -26,7 +26,7 @@ let orderCount = 100;
 
 export default function BotSimulator() {
   const [messages, setMessages] = useState<Message[]>([
-    { from: 'bot', text: 'Olá! 👋 Bem-vindo ao *ZapPDV Bot*.\nDigite *menu* para ver as opções ou *ajuda* para listar comandos.', time: getTime() },
+    { from: 'bot', text: 'Olá! 👋 Bem-vindo ao *Gerenci.AI Bot*.\nDigite *menu* para ver as opções ou *ajuda* para listar comandos.', time: getTime() },
   ]);
   const [input, setInput] = useState('');
   const [botState, setBotState] = useState<BotState>('idle');
@@ -213,7 +213,7 @@ export default function BotSimulator() {
       <div className="w-full max-w-md">
         <div className="text-center mb-4">
           <h1 className="font-display font-bold text-xl text-foreground">Simulador do Bot</h1>
-          <p className="text-sm text-muted-foreground">Teste os comandos do ZapPDV como se fosse no WhatsApp</p>
+          <p className="text-sm text-muted-foreground">Teste os comandos do Gerenci.AI como se fosse no WhatsApp</p>
         </div>
 
         <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-2xl">
@@ -223,7 +223,7 @@ export default function BotSimulator() {
               <img src="https://i.imgur.com/qjT8M0X.png" alt="ZapPDV" className="w-full h-full object-contain" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground">ZapPDV Bot</p>
+              <p className="text-sm font-semibold text-foreground">Gerenci.AI Bot</p>
               <p className="text-xs text-primary">online</p>
             </div>
           </div>
