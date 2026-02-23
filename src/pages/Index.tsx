@@ -441,11 +441,11 @@ export default function LandingPage() {
       <footer className="border-t border-border py-8 px-4 bg-card/10">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <span className="font-display font-bold text-lg text-foreground">ZapPDV</span>
+            <span className="font-display font-bold text-lg text-foreground">Gerenci.AI</span>
           </div>
 
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-muted-foreground text-center">
-            <p>© {new Date().getFullYear()} ZapPDV. Todos os direitos reservados.</p>
+            <p>© {new Date().getFullYear()} Gerenci.AI. Todos os direitos reservados.</p>
             <p>Desenvolvido por <a href="https://jrsn.space" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://jrsn.space</a></p>
           </div>
 
