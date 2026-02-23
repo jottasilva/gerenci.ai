@@ -94,8 +94,8 @@ export default function LandingPage() {
             className="flex items-center h-14 w-48"
           >
             <img
-              src="https://i.imgur.com/9bkJZlL.png"
-              alt="ZapPDV"
+              src="https://i.imgur.com/MLqNJHh.png"
+              alt="Gerenci.ai | Gestão na Palma da Mão"
               className="w-full h-full object-contain"
             />
           </Link>
