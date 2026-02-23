@@ -57,7 +57,9 @@ export default function Pedidos() {
       if (selectedOrder && selectedOrder.id === id) {
         setSelectedOrder({ ...selectedOrder, status });
       }
-    } catch (err) { }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Erro ao atualizar status.");
+    }
   };
 
   const [cart, setCart] = useState<ItemPedido[]>([]);
@@ -205,7 +207,11 @@ export default function Pedidos() {
       setDeliveryAddress('');
       setIsPaymentOpen(false);
       setIsCartOpen(false);
-    } catch (err) { }
+    } catch (err: any) {
+      console.error("Order creation failed:", err);
+      const errorMsg = err.response?.data?.error || err.response?.data?.detail || "Erro ao realizar pedido. Verifique os dados.";
+      toast.error(errorMsg);
+    }
   };
 
   const handleCancelOrder = async (orderId: string) => {

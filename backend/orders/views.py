@@ -3,14 +3,29 @@ from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
 from stores.views import MultiTenantViewSet
 from .models import Order, OrderItem
 from .serializers import OrderSerializer, OrderItemSerializer
+from core.permissions import HasRolePermission, check_permission
+from core.audit import log_critical_action
+from stores.service_hours import is_within_service_hours
 
 
 class OrderViewSet(MultiTenantViewSet):
     queryset = Order.objects.all().prefetch_related('items')
     serializer_class = OrderSerializer
+    permission_classes = [HasRolePermission]
+    required_permissions = {
+        'list': 'pdv.vender',
+        'retrieve': 'pdv.vender',
+        'create': 'pdv.vender',
+        'update': 'pdv.cancelar',
+        'partial_update': 'pdv.cancelar',
+        'cancel': 'pdv.cancelar',
+        'stats': 'relatorio.vendas',
+    }
 
     def perform_create(self, serializer):
         # Items come from request data — handled in create()
@@ -22,32 +37,47 @@ class OrderViewSet(MultiTenantViewSet):
         from django.db import transaction
         from products.models import Product, StockMovement
 
-        data = request.data.copy()
-        items_data = data.pop('items', [])
-
         try:
+            store = self._get_effective_store()
+            if not store:
+                return Response({'error': 'Nenhuma loja vinculada.'}, status=400)
+
+            # 1. Service Hours Validation
+            allowed, msg = is_within_service_hours(store.id, user=request.user)
+            if not allowed:
+                log_critical_action(request.user, 'pdv.tentativa_fora_horario', reason=msg)
+                return Response({'error': msg}, status=status.HTTP_403_FORBIDDEN)
+
+            data = request.data.copy()
+            items_data = data.pop('items', [])
+
             with transaction.atomic():
                 # Build and validate order (without items)
                 serializer = self.get_serializer(data=data)
                 serializer.is_valid(raise_exception=True)
-                order = serializer.save(store=request.user.store, operator=request.user)
+                order = serializer.save(store=store, operator=request.user)
 
                 # Create order items and deduct stock
                 for item in items_data:
                     product_id = item.get('product')
+                    if not product_id:
+                        continue
+
                     qty = int(item.get('quantity', 1))
                     
-                    # Atomic stock check and deduction
-                    product = Product.objects.select_for_update().get(id=product_id, store=request.user.store)
+                    try:
+                        product = Product.objects.select_for_update().get(id=product_id, store=store)
+                    except Product.DoesNotExist:
+                        raise ValueError(f"Produto #{product_id} não encontrado na loja selecionada.")
+
                     if product.stock < qty:
                         raise ValueError(f"Estoque insuficiente para {product.name}. Disponível: {product.stock}")
                     
                     product.stock -= qty
                     product.save()
 
-                    # Create StockMovement for the sale
                     StockMovement.objects.create(
-                        store=order.store,
+                        store=store,
                         product=product,
                         movement_type='SAIDA',
                         quantity=qty,
@@ -60,9 +90,17 @@ class OrderViewSet(MultiTenantViewSet):
                         product=product,
                         product_name=product.name,
                         quantity=qty,
-                        unit_price=float(item.get('unit_price', product.price)),
-                        subtotal=float(item.get('subtotal', qty * product.price)),
+                        unit_price=float(item.get('unit_price') or product.price or 0.0),
+                        subtotal=float(item.get('subtotal') or (qty * (product.price or 0.0))),
                     )
+
+            # 2. Audit the successful order
+            log_critical_action(
+                request.user, 
+                'pdv.vender', 
+                target_object=order, 
+                payload={'total': float(order.total), 'items_count': len(items_data)}
+            )
 
             headers = self.get_success_headers(serializer.data)
             output = OrderSerializer(order, context=self.get_serializer_context())
@@ -71,12 +109,22 @@ class OrderViewSet(MultiTenantViewSet):
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"error": "Erro ao processar o pedido."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            import traceback
+            from django.utils import timezone
+            error_msg = f"DEBUG: Order create failed: {str(e)}\n{traceback.format_exc()}"
+            print(error_msg)
+            try:
+                with open('backend_error.log', 'a', encoding='utf-8') as f:
+                    f.write(f"\n--- {timezone.now()} ---\n{error_msg}\n")
+            except:
+                pass
+            from rest_framework.exceptions import ValidationError
+            if isinstance(e, ValidationError):
+                return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": f"Erro interno: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
-        from rest_framework.response import Response
-        from rest_framework import status
         from django.db import transaction
         from products.models import Product, StockMovement
 
@@ -109,6 +157,14 @@ class OrderViewSet(MultiTenantViewSet):
                             operator=request.user
                         )
 
+                # Audit the cancellation
+                log_critical_action(
+                    request.user, 
+                    'pdv.cancelar', 
+                    target_object=order, 
+                    reason=request.data.get('reason', 'Cancelamento pelo operador')
+                )
+
             return Response({"message": "Pedido cancelado com sucesso e estoque estornado."}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": f"Erro ao cancelar pedido: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -119,7 +175,7 @@ class OrderViewSet(MultiTenantViewSet):
         GET /api/orders/stats/
         Returns aggregated dashboard statistics for the selected store.
         """
-        store = request.user.store
+        store = self._get_effective_store()
         if not store:
             return Response({'error': 'Nenhuma loja vinculada.'}, status=400)
 
@@ -138,7 +194,7 @@ class OrderViewSet(MultiTenantViewSet):
 
         # 2. Sequential Data based on Period
         period = request.query_params.get('period', 'diario')
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         today_date = now.date()
 
         if period == 'mensal':
@@ -153,8 +209,9 @@ class OrderViewSet(MultiTenantViewSet):
             months_br = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
             for i in range(6):
                 # Calculate the 6 most recent months
-                d = (now - timedelta(days=30*i)).replace(day=1).date()
-                res = next((item for item in sales_qs if item['date'].year == d.year and item['date'].month == d.month), None)
+                d = (today_date - timedelta(days=30*i)).replace(day=1)
+                # Ensure we compare dates safely (TruncMonth might return datetime in some DBs)
+                res = next((item for item in sales_qs if (item['date'].date() if hasattr(item['date'], 'date') else item['date']) == d), None)
                 daily_sales_data.insert(0, {
                     'dia': f"{months_br[d.month-1]}/{str(d.year)[2:]}",
                     'vendas': float(res['vendas']) if res else 0.0
@@ -173,7 +230,7 @@ class OrderViewSet(MultiTenantViewSet):
                 d = today_date - timedelta(days=7*i)
                 # Get start of week
                 d_start = d - timedelta(days=d.weekday())
-                res = next((item for item in sales_qs if item['date'] == d_start), None)
+                res = next((item for item in sales_qs if (item['date'].date() if hasattr(item['date'], 'date') else item['date']) == d_start), None)
                 daily_sales_data.insert(0, {
                     'dia': f"Sem {d_start.day}/{d_start.month}",
                     'vendas': float(res['vendas']) if res else 0.0
@@ -190,14 +247,13 @@ class OrderViewSet(MultiTenantViewSet):
             daily_sales_data = []
             for i in range(7):
                 d = start_date + timedelta(days=i)
-                res = next((item for item in sales_qs if item['date'] == d), None)
+                res = next((item for item in sales_qs if (item['date'].date() if hasattr(item['date'], 'date') else item['date']) == d), None)
                 daily_sales_data.append({
                     'dia': weekdays[d.weekday()],
                     'vendas': float(res['vendas']) if res else 0.0
                 })
 
         # 3. Sales by Category
-        from products.models import Product
         category_sales = OrderItem.objects.filter(order__store=store).exclude(order__status='CANCELADO') \
             .values(cat_name=F('product__category__name')) \
             .annotate(value=Sum('subtotal')) \
@@ -225,9 +281,7 @@ class OrderViewSet(MultiTenantViewSet):
             })
 
         # 5. Today's KPIs
-        now_local = timezone.localtime(timezone.now())
-        today = now_local.date()
-        today_orders = orders_query.filter(created_at__date=today)
+        today_orders = orders_query.filter(created_at__date=today_date)
         today_kpi = today_orders.aggregate(
             revenue=Sum('total'),
             count=Count('id'),

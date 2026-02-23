@@ -1,0 +1,16 @@
+{
+    "horario_inicio": "08:00",
+    "horario_fim": "22:00",
+    "dias_ativos": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+    ],
+    "tolerancia_minutos": 15,
+    "permitir_venda_fora_horario": false,
+    "exigir_aprovacao_fora_horario": true
+}

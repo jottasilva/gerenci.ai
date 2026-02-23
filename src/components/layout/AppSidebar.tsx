@@ -13,14 +13,14 @@ import {
 } from '@/components/ui/select';
 
 const navItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'GERENTE'] },
   { label: 'Pedidos', path: '/pedidos', icon: ShoppingCart },
   { label: 'Produtos', path: '/produtos', icon: Package },
-  { label: 'Estoque', path: '/estoque', icon: Warehouse },
-  { label: 'Clientes', path: '/clientes', icon: Users },
-  { label: 'Operadores', path: '/operadores', icon: UserCog },
-  { label: 'Configurações', path: '/configuracoes', icon: Settings },
-  { label: 'Assinatura', path: '/assinaturas', icon: CreditCard },
+  { label: 'Estoque', path: '/estoque', icon: Warehouse, roles: ['ADMIN', 'GERENTE'] },
+  { label: 'Clientes', path: '/clientes', icon: Users, roles: ['ADMIN', 'GERENTE'] },
+  { label: 'Operadores', path: '/operadores', icon: UserCog, roles: ['ADMIN', 'GERENTE'] },
+  { label: 'Configurações', path: '/configuracoes', icon: Settings, roles: ['ADMIN', 'GERENTE'] },
+  { label: 'Assinatura', path: '/assinaturas', icon: CreditCard, roles: ['ADMIN', 'GERENTE'] },
 ];
 
 export function AppSidebar() {
@@ -56,7 +56,7 @@ export function AppSidebar() {
       <div className="px-5 py-5 border-b border-border h-24 flex items-center justify-center">
         <RouterNavLink to="/" className="flex items-center justify-center w-full h-full">
           <img
-            src="https://i.imgur.com/9bkJZlL.png"
+            src="https://i.imgur.com/qjT8M0X.png"
             alt="Gerenc.AI"
             className="w-full h-full object-contain max-h-14"
           />
@@ -96,7 +96,7 @@ export function AppSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map(item => {
+        {navItems.filter(item => !item.roles || (user && item.roles.includes(user.role))).map(item => {
           const isActive = location.pathname === item.path;
           return (
             <RouterNavLink

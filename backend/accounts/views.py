@@ -6,11 +6,40 @@ from .serializers import UserSerializer, RegisterSerializer
 from stores.models import Store
 
 from stores.views import MultiTenantViewSet
+from core.permissions import HasRolePermission
 
 class UserViewSet(MultiTenantViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [HasRolePermission]
+    required_permissions = {
+        'list': 'relatorio.vendas', # Gerente can see team
+        'retrieve': 'pdv.vender', # Any operator can see own
+        'me': 'pdv.vender',
+        'create': 'usuario.gerenciar',
+        'update': 'relatorio.vendas', # Allow Gerente to trigger
+        'partial_update': 'relatorio.vendas',
+        'destroy': 'usuario.gerenciar',
+        'service_hours': 'config.atendente',
+    }
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        
+        # Ownership Rule for User Model:
+        # GERENTE can only edit/delete:
+        # 1. Themselves (request.user == obj)
+        # 2. Operators they created (obj.operator == request.user)
+        if request.user.role == 'GERENTE':
+            if request.method in ['PUT', 'PATCH', 'DELETE']:
+                is_self = request.user.whatsapp == obj.whatsapp
+                is_subordinate = obj.operator and obj.operator.whatsapp == request.user.whatsapp
+                
+                if not (is_self or is_subordinate):
+                    self.permission_denied(
+                        request, 
+                        message="Gerentes só podem editar seu próprio registro ou operadores criados por eles."
+                    )
 
     @action(detail=False, methods=['get', 'patch'])
     def me(self, request):
@@ -21,6 +50,21 @@ class UserViewSet(MultiTenantViewSet):
             return Response(serializer.data)
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get', 'post'])
+    def service_hours(self, request, pk=None):
+        user = self.get_object()
+        from stores.service_hours import get_user_service_hours, save_user_service_hours
+        
+        if request.method == 'POST':
+            # Simplified validation: ensure correct keys
+            allowed_keys = ['horario_inicio', 'horario_fim', 'dias_ativos', 'ativo']
+            data = {k: v for k, v in request.data.items() if k in allowed_keys}
+            save_user_service_hours(user.whatsapp, data)
+            return Response({'status': 'Horário atualizado com sucesso', 'data': data})
+            
+        config = get_user_service_hours(user.whatsapp)
+        return Response(config)
 
     def perform_create(self, serializer):
         serializer.save(store=self.request.user.store)

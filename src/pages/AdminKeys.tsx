@@ -25,6 +25,10 @@ export default function AdminKeys() {
         key: ''
     });
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     const generateMutation = useMutation({
         mutationFn: (data: any) => billingService.generateKey(data),
         onSuccess: () => {
@@ -64,6 +68,10 @@ export default function AdminKeys() {
         setNewKeyData(prev => ({ ...prev, key: result }));
     };
 
+    // Pagination logic
+    const totalPages = Math.ceil(keys.length / itemsPerPage);
+    const paginatedKeys = keys.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     return (
         <div className="p-6 space-y-8 max-w-5xl">
             <PageHeader
@@ -71,8 +79,8 @@ export default function AdminKeys() {
                 subtitulo="Gere e controle chaves de acesso para os planos."
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="md:col-span-1 border-primary/20 bg-primary/[0.02]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                <Card className="md:col-span-1 border-primary/20 bg-primary/[0.02] h-fit sticky top-6">
                     <CardHeader>
                         <CardTitle className="text-sm font-bold flex items-center gap-2">
                             <Plus className="h-4 w-4" /> Gerar Nova Chave
@@ -141,40 +149,68 @@ export default function AdminKeys() {
                         ) : keys.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground text-sm">Nenhuma chave gerada ainda.</div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-border text-xs text-muted-foreground">
-                                            <th className="text-left py-3 font-medium">Chave</th>
-                                            <th className="text-left py-3 font-medium">Plano / Dias</th>
-                                            <th className="text-center py-3 font-medium">Status</th>
-                                            <th className="text-right py-3 font-medium">Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border">
-                                        {keys.map((k: any) => (
-                                            <tr key={k.id} className="hover:bg-muted/30 transition-colors">
-                                                <td className="py-3 font-mono font-medium text-xs">{k.key}</td>
-                                                <td className="py-3">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-semibold">{k.plan_name}</span>
-                                                        <span className="text-[10px] text-muted-foreground">{k.duration_days} dias</span>
-                                                    </div>
-                                                </td>
-                                                <td className="py-3 text-center">
-                                                    <Badge variant="outline" className={k.is_used ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}>
-                                                        {k.is_used ? 'Utilizada' : 'Disponível'}
-                                                    </Badge>
-                                                </td>
-                                                <td className="py-3 text-right">
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => copyToClipboard(k.key)}>
-                                                        <Copy className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </td>
+                            <div className="space-y-4">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-border text-xs text-muted-foreground">
+                                                <th className="text-left py-3 font-medium">Chave</th>
+                                                <th className="text-left py-3 font-medium">Plano / Dias</th>
+                                                <th className="text-center py-3 font-medium">Status</th>
+                                                <th className="text-right py-3 font-medium">Ações</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-border">
+                                            {paginatedKeys.map((k: any) => (
+                                                <tr key={k.id} className="hover:bg-muted/30 transition-colors">
+                                                    <td className="py-3 font-mono font-medium text-xs text-primary">{k.key}</td>
+                                                    <td className="py-3">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold">{k.plan_name}</span>
+                                                            <span className="text-[10px] text-muted-foreground">{k.duration_days} dias</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 text-center">
+                                                        <Badge variant="outline" className={k.is_used ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}>
+                                                            {k.is_used ? 'Utilizada' : 'Disponível'}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="py-3 text-right">
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => copyToClipboard(k.key)}>
+                                                            <Copy className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {totalPages > 1 && (
+                                    <div className="flex items-center justify-between pt-4 border-t border-border">
+                                        <p className="text-[10px] text-muted-foreground">Página {currentPage} de {totalPages}</p>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 rounded-lg text-xs"
+                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                                disabled={currentPage === 1}
+                                            >
+                                                Anterior
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 rounded-lg text-xs font-bold"
+                                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                                disabled={currentPage === totalPages}
+                                            >
+                                                Próxima
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </CardContent>

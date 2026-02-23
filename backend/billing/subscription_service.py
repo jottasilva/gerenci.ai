@@ -190,14 +190,17 @@ def upgrade_plan_with_duration(store, plan, days):
     from billing.models import Subscription, BillingEvent
     sub, created = Subscription.objects.get_or_create(store=store)
     
+    old_plan = sub.plan
     sub.plan = plan
     sub.status = Subscription.STATUS_ACTIVE
     
-    # If already active, add to existing end_date, otherwise start from now
+    # If it's the SAME plan already active, add to existing end_date.
+    # If it's a DIFFERENT plan, REDEFINE (start duration from now).
     now = timezone.now()
-    if sub.end_date and sub.end_date > now:
+    if old_plan == plan and sub.end_date and sub.end_date > now:
         sub.end_date += timedelta(days=days)
     else:
+        # Redefine: new plan or expired sub start from today
         sub.end_date = now + timedelta(days=days)
         
     sub.save()

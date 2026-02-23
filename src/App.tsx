@@ -18,6 +18,7 @@ import Configuracoes from "./pages/Configuracoes";
 import Assinaturas from "./pages/Assinaturas";
 import AdminKeys from "./pages/AdminKeys";
 import NotFound from "./pages/NotFound";
+import Unauthorized from "./pages/Unauthorized";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,12 +42,21 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/pedidos" element={<Pedidos />} />
               <Route path="/produtos" element={<Produtos />} />
-              <Route path="/estoque" element={<Estoque />} />
-              <Route path="/clientes" element={<Clientes />} />
-              <Route path="/operadores" element={<Operadores />} />
-              <Route path="/configuracoes" element={<Configuracoes />} />
-              <Route path="/assinaturas" element={<Assinaturas />} />
-              <Route path="/admin/keys" element={<AdminKeys />} />
+              <Route path="/unauthorized" element={<Unauthorized />} />
+
+              {/* Restricted pages - Management Only */}
+              <Route element={<PrivateRoute allowedRoles={['ADMIN', 'GERENTE']} />}>
+                <Route path="/estoque" element={<Estoque />} />
+                <Route path="/clientes" element={<Clientes />} />
+                <Route path="/operadores" element={<Operadores />} />
+                <Route path="/configuracoes" element={<Configuracoes />} />
+                <Route path="/assinaturas" element={<Assinaturas />} />
+              </Route>
+
+              {/* Only Admin */}
+              <Route element={<PrivateRoute allowedRoles={['ADMIN']} />}>
+                <Route path="/admin/keys" element={<AdminKeys />} />
+              </Route>
             </Route>
           </Route>
           <Route path="*" element={<NotFound />} />

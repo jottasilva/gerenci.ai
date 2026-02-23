@@ -202,7 +202,7 @@ export function ChatMockup() {
     >
       <div className="bg-surface-2 px-4 py-3 flex items-center gap-3 border-b border-border">
         <div className="h-10 w-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center p-1.5">
-          <img src="https://i.imgur.com/9bkJZlL.png" alt="ZapPDV" className="w-full h-full object-contain" />
+          <img src="https://i.imgur.com/qjT8M0X.png" alt="ZapPDV" className="w-full h-full object-contain" />
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">Gerenc.ai | Amélia</p>

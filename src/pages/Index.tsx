@@ -94,7 +94,7 @@ export default function LandingPage() {
             className="flex items-center h-14 w-48"
           >
             <img
-              src="https://i.imgur.com/MLqNJHh.png"
+              src="https://i.imgur.com/qjT8M0X.png"
               alt="Gerenci.ai | Gestão na Palma da Mão"
               className="w-full h-full object-contain"
             />
@@ -130,7 +130,7 @@ export default function LandingPage() {
                   <SheetHeader>
                     <SheetTitle className="text-left">
                       <img
-                        src="https://i.imgur.com/9bkJZlL.png"
+                        src="https://i.imgur.com/qjT8M0X.png"
                         alt="ZapPDV"
                         className="h-8 object-contain"
                       />
@@ -389,13 +389,7 @@ export default function LandingPage() {
                   variants={fadeUp}
                   className={`rounded-2xl border p-6 transition-all hover:-translate-y-1 ${style.card}`}
                 >
-                  {plan.is_highlighted && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full shadow-lg ${style.badge}`}>
-                        <Star className="h-3 w-3" /> Mais popular
-                      </span>
-                    </div>
-                  )}
+                  {/* Badge removed */}
                   <h3 className="font-display font-bold text-lg text-foreground mb-1">{plan.name}</h3>
                   <div className="mb-4">
                     <span className="text-3xl font-display font-bold text-foreground">R${plan.price}</span>
@@ -443,54 +437,23 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-12 px-4 shadow-sm bg-card/10">
-        <div className="w-[80vw] md:max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-            <div>
-              <Link to="/" className="flex items-center mb-3 h-14 w-40">
-                <img
-                  src="https://i.imgur.com/9bkJZlL.png"
-                  alt="ZapPDV"
-                  className="w-full h-full object-contain"
-                />
-              </Link>
-              <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
-                Transforme seu WhatsApp em um PDV completo. Venda, gerencie estoque e acompanhe relatórios em tempo real.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-display font-bold text-foreground mb-3">Produto</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a></li>
-                <li><a href="#precos" className="hover:text-foreground transition-colors">Preços</a></li>
-                <li><a href="#como-funciona" className="hover:text-foreground transition-colors">Como funciona</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-display font-bold text-foreground mb-3">Acesso</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link to="/dashboard" className="hover:text-foreground transition-colors">Painel de Controle</Link></li>
-                <li><Link to="/login" className="hover:text-foreground transition-colors">Login</Link></li>
-                <li><Link to="/pedidos" className="hover:text-foreground transition-colors">Pedidos</Link></li>
-                <li><Link to="/produtos" className="hover:text-foreground transition-colors">Produtos</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-display font-bold text-foreground mb-3">Contato</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> contato@gerencia.store</li>
-                <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (43) 98844-1992</li>
-                <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Jacarezinho, PR</li>
-              </ul>
-            </div>
+      {/* Simplified Footer */}
+      <footer className="border-t border-border py-8 px-4 bg-card/10">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <span className="font-display font-bold text-lg text-foreground">ZapPDV</span>
           </div>
-          <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-muted-foreground">© 2025 ZapPDV. Todos os direitos reservados.</p>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">Termos de uso</a>
-              <a href="#" className="hover:text-foreground transition-colors">Privacidade</a>
-            </div>
+
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-muted-foreground text-center">
+            <p>© {new Date().getFullYear()} ZapPDV. Todos os direitos reservados.</p>
+            <p>Desenvolvido por <a href="https://jrsn.space" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://jrsn.space</a></p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-muted-foreground">
+            <a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a>
+            <a href="#como-funciona" className="hover:text-foreground transition-colors">Como funciona</a>
+            <a href="#precos" className="hover:text-foreground transition-colors">Preços</a>
+            <Link to="/login" className="hover:text-foreground transition-colors">Login</Link>
           </div>
         </div>
       </footer>

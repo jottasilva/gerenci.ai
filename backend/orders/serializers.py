@@ -33,6 +33,7 @@ class OrderSerializer(serializers.ModelSerializer):
     # Portuguese aliases for read
     cliente = serializers.PrimaryKeyRelatedField(source='customer', read_only=True)
     cliente_name = serializers.ReadOnlyField(source='customer.name')
+    cliente_name_manual = serializers.ReadOnlyField(source='customer_name_manual')
     desconto = serializers.DecimalField(source='discount', max_digits=12, decimal_places=2, read_only=True)
     forma_pagto = serializers.CharField(source='payment_method', read_only=True)
     valor_recebido = serializers.DecimalField(source='received_amount', max_digits=12, decimal_places=2, read_only=True)
