@@ -105,7 +105,7 @@ export default function BotSimulator() {
       }
       if (lower === '3') {
         setBotState('idle');
-        setTimeout(() => addMsg('bot', '📋 *Últimos pedidos:*\n\n• P005 — Ana Costa — R$ 45,00 — ABERTO\n• P004 — Pedro Alves — R$ 23,50 — EM PREPARO\n• P003 — Maria Santos — R$ 89,00 — CONFIRMADO\n• P002 — Balcão — R$ 12,50 — ENTREGUE\n• P001 — João Silva — R$ 37,00 — ENTREGUE'), 400);
+        setTimeout(() => addMsg('bot', '📋 *Últimos pedidos:*\n\n• P005 — Ana Costa — R$ 45,00 — REALIZADO\n• P004 — Pedro Alves — R$ 23,50 — PREPARANDO\n• P003 — Maria Santos — R$ 89,00 — REALIZADO\n• P002 — Balcão — R$ 12,50 — FINALIZADO\n• P001 — João Silva — R$ 37,00 — FINALIZADO'), 400);
         return;
       }
       if (lower === '5') {

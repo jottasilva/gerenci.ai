@@ -1,21 +1,22 @@
 import { StatusPedido, FormaPagamento } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   Banknote, QrCode, CreditCard, AlertTriangle,
   CheckCircle2, Clock, Truck, XCircle, Package
 } from 'lucide-react';
 
 const statusConfig: Record<StatusPedido, { label: string; className: string; icon: React.ElementType }> = {
-  ABERTO: { label: 'Aberto', className: 'bg-muted text-muted-foreground', icon: Clock },
-  CONFIRMADO: { label: 'Confirmado', className: 'bg-primary/15 text-primary border-primary/30', icon: CheckCircle2 },
-  EM_PREPARO: { label: 'Em Preparo', className: 'bg-warning/15 text-warning border-warning/30', icon: Package },
-  ENTREGUE: { label: 'Entregue', className: 'bg-primary/15 text-primary border-primary/30', icon: Truck },
+  REALIZADO: { label: 'Realizado', className: 'bg-muted text-muted-foreground', icon: Clock },
+  PREPARANDO: { label: 'Preparando', className: 'bg-warning/15 text-warning border-warning/30', icon: Package },
+  ENVIADO: { label: 'Enviado', className: 'bg-blue-500/15 text-blue-600 border-blue-500/30', icon: Truck },
+  FINALIZADO: { label: 'Finalizado', className: 'bg-primary/15 text-primary border-primary/30', icon: CheckCircle2 },
   CANCELADO: { label: 'Cancelado', className: 'bg-destructive/15 text-destructive border-destructive/30', icon: XCircle },
 };
 
 export function StatusBadge({ status }: { status: StatusPedido }) {
-  const config = statusConfig[status];
+  const config = statusConfig[status] || statusConfig.REALIZADO;
   const Icon = config.icon;
+
   return (
     <Badge variant="outline" className={`${config.className} gap-1 font-body font-medium text-xs`}>
       <Icon className="h-3 w-3" />

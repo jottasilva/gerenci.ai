@@ -17,13 +17,14 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser):
     username = None
-    whatsapp = models.CharField(max_length=20, unique=True)
+    whatsapp = models.CharField(max_length=20, primary_key=True)
     role = models.CharField(max_length=20, choices=[
         ('ADMIN', 'Admin'),
         ('GERENTE', 'Gerente'),
         ('VENDEDOR', 'Vendedor'),
     ], default='VENDEDOR')
     store = models.ForeignKey('stores.Store', on_delete=models.CASCADE, null=True, blank=True, related_name='members')
+    operator = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_users')
     ativo = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'whatsapp'

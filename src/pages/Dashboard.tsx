@@ -1,15 +1,21 @@
-import { DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, ChevronRight, Loader2, FileDown } from 'lucide-react';
+import { useState } from 'react';
+import { DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, ChevronRight, Loader2, FileDown, Warehouse, Truck, ShoppingBag, Check, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart, Cell } from 'recharts';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from '@/components/ui/badge';
 import { KPICard } from '@/components/shared/KPICard';
 import { StatusBadge, PagamentoBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from '@/components/ui/badge';
 import { useGetProducts } from '@/services/product.service';
-import { useGetOrders } from '@/services/order.service';
+import { useGetOrders, useUpdateOrderStatus } from '@/services/order.service';
 import { useGetCustomers } from '@/services/customer.service';
 import { exportToCSV } from '@/utils/exportUtils';
+import { useQueryClient } from '@tanstack/react-query';
+import { api } from '@/services/api';
+import { toast } from "sonner";
+import { Pedido, StatusPedido } from '@/types';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -17,6 +23,33 @@ export default function Dashboard() {
   const { data: products = [], isLoading: isLoadingProducts } = useGetProducts();
   const { data: orders = [], isLoading: isLoadingOrders } = useGetOrders();
   const { data: customers = [], isLoading: isLoadingCustomers } = useGetCustomers();
+
+  const [selectedOrder, setSelectedOrder] = useState<Pedido | null>(null);
+  const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const updateStatusMutation = useUpdateOrderStatus();
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!window.confirm("Deseja realmente cancelar este pedido? O estoque será estornado.")) return;
+    try {
+      await api.post(`orders/${orderId}/cancel/`);
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setIsOrderDetailOpen(false);
+      toast.success("Pedido cancelado com sucesso!");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Erro ao cancelar pedido.");
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, status: StatusPedido) => {
+    try {
+      await updateStatusMutation.mutateAsync({ id, status });
+      if (selectedOrder && selectedOrder.id === id) {
+        setSelectedOrder({ ...selectedOrder, status });
+      }
+    } catch (err) { }
+  };
 
   if (isLoadingProducts || isLoadingOrders || isLoadingCustomers) {
     return (
@@ -27,7 +60,8 @@ export default function Dashboard() {
     );
   }
 
-  const produtosEstoqueBaixo = products.filter(p => p.stock <= p.stock_min);
+  const semEstoque = products.filter(p => p.stock <= 0);
+  const estoqueBaixo = products.filter(p => p.stock > 0 && p.stock <= p.stock_min);
   const ordersValidas = orders.filter(p => p.status !== 'CANCELADO');
   const totalFaturamento = ordersValidas.reduce((sum, p) => sum + parseFloat(p.total.toString()), 0);
   const ticketMedio = ordersValidas.length > 0 ? totalFaturamento / ordersValidas.length : 0;
@@ -77,18 +111,15 @@ export default function Dashboard() {
       total_vendas: `R$ ${p.total.toFixed(2)}`
     }));
 
-    const stockAlertData = produtosEstoqueBaixo.map(p => ({
-      produto: p.name,
-      estoque_atual: p.stock,
-      estoque_minimo: p.stock_min
-    }));
+    const stockAlertData = [
+      ...semEstoque.map(p => ({ produto: p.name, alert: 'SEM ESTOQUE', qtd: 0 })),
+      ...estoqueBaixo.map(p => ({ produto: p.name, alert: 'ESTOQUE BAIXO', qtd: p.stock }))
+    ];
 
-    // For a simple single-file export, we combine or pick the most useful
-    // Let's export a summary and the top products
     exportToCSV('relatorio_dashboard', [
       ...reportData.map(r => ({ Categoria: 'KPI', Item: r.metrica, Valor: r.valor })),
       ...topProdData.map(p => ({ Categoria: 'Top Produto', Item: p.produto, Valor: p.total_vendas })),
-      ...stockAlertData.map(s => ({ Categoria: 'Alerta Estoque', Item: s.produto, Valor: `${s.estoque_atual} un` }))
+      ...stockAlertData.map(s => ({ Categoria: 'Alerta Estoque', Item: s.produto, Valor: `${s.alert} (${s.qtd} un)` }))
     ], ['CATEGORIA', 'ITEM', 'VALOR']);
   };
 
@@ -96,7 +127,7 @@ export default function Dashboard() {
     <div className="space-y-6 max-w-[1600px] mx-auto pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageHeader titulo="Dashboard" subtitulo="Visão geral e inteligência do seu negócio" />
-        <Button onClick={handleExport} variant="outline" className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 font-bold h-11 px-6 sm:w-auto w-full">
+        <Button onClick={handleExport} variant="outline" className="rounded-xl border-primary/20 text-primary hover:bg-primary hover:text-white font-bold h-11 px-6 sm:w-auto w-full transition-all">
           <FileDown className="mr-2 h-4 w-4" /> Exportar Relatório
         </Button>
       </div>
@@ -116,15 +147,35 @@ export default function Dashboard() {
           </h3>
           <ScrollArea className="flex-1 -mx-1 px-1">
             <div className="space-y-3">
-              {produtosEstoqueBaixo.length > 0 ? (
-                produtosEstoqueBaixo.map(p => (
-                  <div key={p.id} className="p-3 rounded-xl bg-destructive/5 border border-destructive/10 flex items-center justify-between group hover:bg-destructive/10 transition-colors">
-                    <div>
-                      <p className="text-sm font-bold text-foreground">{p.name}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Restam apenas {p.stock} un</p>
+              {semEstoque.length > 0 || estoqueBaixo.length > 0 ? (
+                <>
+                  {semEstoque.map(p => (
+                    <div
+                      key={p.id}
+                      onClick={() => window.location.href = '/estoque'}
+                      className="p-3 rounded-xl bg-red-500/5 border border-red-500/10 flex items-center justify-between group hover:bg-red-500/10 transition-colors cursor-pointer"
+                    >
+                      <div>
+                        <p className="text-sm font-bold text-foreground group-hover:text-red-600 transition-colors">{p.name || p.nome}</p>
+                        <p className="text-[10px] text-red-600 uppercase font-bold tracking-wider">Sem Estoque</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-red-500 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
                     </div>
-                  </div>
-                ))
+                  ))}
+                  {estoqueBaixo.map(p => (
+                    <div
+                      key={p.id}
+                      onClick={() => window.location.href = '/estoque'}
+                      className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 flex items-center justify-between group hover:bg-orange-500/10 transition-colors cursor-pointer"
+                    >
+                      <div>
+                        <p className="text-sm font-bold text-foreground group-hover:text-orange-600 transition-colors">{p.name || p.nome}</p>
+                        <p className="text-[10px] text-orange-600 uppercase font-bold tracking-wider">Estoque Baixo ({p.stock} un)</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-orange-500 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
+                    </div>
+                  ))}
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8 opacity-40">
                   <Package className="h-10 w-10 mb-2" />
@@ -195,10 +246,17 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {orders.slice(0, 5).map(p => (
-                  <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30">
+                  <tr
+                    key={p.id}
+                    onClick={() => {
+                      setSelectedOrder(p);
+                      setIsOrderDetailOpen(true);
+                    }}
+                    className="border-b border-border/50 hover:bg-primary/5 cursor-pointer transition-colors"
+                  >
                     <td className="py-3 px-4 font-bold">{p.cliente_name || p.cliente_name_manual || 'Balcão'}</td>
-                    <td className="py-3 px-4 text-right font-bold">R$ {parseFloat(p.total.toString()).toFixed(2)}</td>
-                    <td className="py-3 px-4"><StatusBadge status={p.status} /></td>
+                    <td className="py-3 px-4 text-right font-bold">R$ {parseFloat(p.total.toString()).toFixed(2).replace('.', ',')}</td>
+                    <td className="py-3 px-4 text-right"><StatusBadge status={p.status} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -206,6 +264,93 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <Dialog open={isOrderDetailOpen} onOpenChange={setIsOrderDetailOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-xl rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+          <DialogHeader className="p-6 bg-muted/30 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-display font-bold">Detalhes do Pedido #{selectedOrder?.id}</DialogTitle>
+                <DialogDescription>
+                  {selectedOrder?.created_at && new Date(selectedOrder.created_at).toLocaleString()}
+                </DialogDescription>
+              </div>
+              <StatusBadge status={selectedOrder?.status || 'REALIZADO'} />
+            </div>
+          </DialogHeader>
+          <div className="p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Cliente:</span>
+                <span className="font-bold">{selectedOrder?.cliente_name || selectedOrder?.cliente_name_manual || 'Balcão'}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Forma de Pagamento:</span>
+                <span className="font-bold">{selectedOrder?.payment_method || selectedOrder?.forma_pagto}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Operador:</span>
+                <span className="font-bold">{selectedOrder?.operador_nome || selectedOrder?.operator_name || 'Admin'}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Tipo de Entrega:</span>
+                <div className="flex items-center gap-2 font-bold">
+                  {selectedOrder?.delivery_method === 'BALCAO' && <Warehouse className="h-4 w-4" />}
+                  {selectedOrder?.delivery_method === 'ENTREGA' && <Truck className="h-4 w-4" />}
+                  {selectedOrder?.delivery_method === 'RETIRADA' && <ShoppingBag className="h-4 w-4" />}
+                  {selectedOrder?.delivery_method || 'BALCAO'}
+                </div>
+              </div>
+              {selectedOrder?.delivery_method === 'ENTREGA' && (selectedOrder?.delivery_address || (selectedOrder as any)?.endereco_entrega) && (
+                <div className="space-y-1 pt-2 border-t border-border/50">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Endereço de Entrega:</span>
+                  <p className="text-sm bg-muted/30 p-3 rounded-xl border border-border/50 italic">{selectedOrder.delivery_address || (selectedOrder as any)?.endereco_entrega}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Itens do Pedido</p>
+              <div className="space-y-2 border border-border rounded-xl p-3 bg-muted/10">
+                {(selectedOrder?.items || selectedOrder?.itens || []).map((item, idx) => (
+                  <div key={idx} className="flex justify-between text-sm py-1 border-b border-border/50 last:border-none">
+                    <span>{item.quantity}x {item.product_name || item.nome}</span>
+                    <span className="font-bold">R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}</span>
+                  </div>
+                ))}
+                {Number(selectedOrder?.delivery_fee || (selectedOrder as any)?.taxa_entrega || 0) > 0 && (
+                  <div className="flex justify-between text-sm py-1 font-bold text-primary">
+                    <span>Taxa de Entrega</span>
+                    <span>R$ {parseFloat((selectedOrder?.delivery_fee || (selectedOrder as any)?.taxa_entrega || 0).toString()).toFixed(2).replace('.', ',')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border flex justify-between items-end gap-4">
+              <div className="space-y-1 min-w-fit">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor Total</p>
+                <p className="text-2xl font-display font-extrabold text-primary">R$ {parseFloat(selectedOrder?.total?.toString() || '0').toFixed(2).replace('.', ',')}</p>
+              </div>
+
+              <div className="flex-1 max-w-[200px] space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Alterar Status</p>
+                <select
+                  value={selectedOrder?.status}
+                  onChange={(e) => handleUpdateStatus((selectedOrder as any).id, e.target.value as StatusPedido)}
+                  disabled={updateStatusMutation.isPending}
+                  className="w-full h-10 rounded-xl bg-muted/50 border-none px-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer hover:bg-muted transition-colors"
+                >
+                  <option value="REALIZADO">Realizado (Inicial)</option>
+                  <option value="PREPARANDO">Preparando</option>
+                  <option value="ENVIADO">Enviado</option>
+                  <option value="FINALIZADO">Finalizado</option>
+                  <option value="CANCELADO">Cancelado</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

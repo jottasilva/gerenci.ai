@@ -33,7 +33,19 @@ export const useCreateOrder = () => {
         mutationFn: orderService.createOrder,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
             toast.success("Pedido realizado com sucesso!");
+        },
+    });
+};
+
+export const useUpdateOrderStatus = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, status }: { id: string, status: string }) => orderService.updateOrderStatus(id, status),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            toast.success("Status do pedido atualizado!");
         },
     });
 };

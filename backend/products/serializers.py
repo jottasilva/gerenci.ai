@@ -36,25 +36,21 @@ class ProductSerializer(serializers.ModelSerializer):
         """Accept both English and Portuguese field names on write."""
         mapped = dict(data)
         # Map Portuguese -> English for write operations (Portuguese takes precedence)
-        if 'nome' in mapped:
+        if 'nome' in mapped and 'name' not in mapped:
             mapped['name'] = mapped.pop('nome')
-        if 'preco' in mapped:
+        if 'preco' in mapped and 'price' not in mapped:
             mapped['price'] = mapped.pop('preco')
-        if 'estoque' in mapped:
+        if 'estoque' in mapped and 'stock' not in mapped:
             mapped['stock'] = mapped.pop('estoque')
-        if 'estoque_min' in mapped:
+        if 'estoque_min' in mapped and 'min_stock' not in mapped:
             mapped['min_stock'] = mapped.pop('estoque_min')
-        if 'stock_min' in mapped:
+        if 'stock_min' in mapped and 'min_stock' not in mapped:
             mapped['min_stock'] = mapped.pop('stock_min')
-        if 'ativo' in mapped:
+        if 'ativo' in mapped and 'is_active' not in mapped:
             mapped['is_active'] = mapped.pop('ativo')
 
-        # Handle category: if it's an empty string or "TODOS", set to None
-        if 'category' in mapped and (mapped['category'] == '' or mapped['category'] == 'TODOS'):
-            mapped['category'] = None
-
-        # Remove read-only Portuguese aliases from write data
-        for key in ('categoria',):
+        # Clean up Portuguese aliases if they were not popped
+        for key in ('nome', 'preco', 'estoque', 'estoque_min', 'stock_min', 'ativo', 'categoria', 'categoria_name', 'nome_categoria'):
             mapped.pop(key, None)
         return super().to_internal_value(mapped)
 

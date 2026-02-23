@@ -3,12 +3,10 @@ from stores.models import StoreModel
 
 class Order(StoreModel):
     STATUS_CHOICES = [
-        ('ABERTO', 'Aberto'),
-        ('CONFIRMADO', 'Confirmado'),
-        ('EM_PREPARO', 'Em Preparo'),
-        ('PRONTO', 'Pronto'),
-        ('SAIU_ENTREGA', 'Saiu para Entrega'),
-        ('ENTREGUE', 'Entregue'),
+        ('REALIZADO', 'Realizado'),
+        ('PREPARANDO', 'Preparando'),
+        ('ENVIADO', 'Enviado'),
+        ('FINALIZADO', 'Finalizado'),
         ('CANCELADO', 'Cancelado'),
     ]
     PAYMENT_CHOICES = [
@@ -19,15 +17,30 @@ class Order(StoreModel):
         ('FIADO', 'Fiado'),
     ]
     
+    DELIVERY_CHOICES = [
+        ('BALCAO', 'Balcão'),
+        ('ENTREGA', 'Entrega'),
+        ('RETIRADA', 'Retirada'),
+    ]
+
     customer = models.ForeignKey('customers.Customer', on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     customer_name_manual = models.CharField(max_length=255, null=True, blank=True) # For "Balcão"
     total = models.DecimalField(max_digits=12, decimal_places=2)
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ABERTO')
+    received_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    change_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    delivery_method = models.CharField(max_length=20, choices=DELIVERY_CHOICES, default='BALCAO')
+    delivery_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    delivery_address = models.TextField(null=True, blank=True)
+    pix_qr_code = models.TextField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='REALIZADO')
     operator = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, related_name='processed_orders')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"Order {self.id} - {self.store.name}"

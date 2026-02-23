@@ -176,7 +176,7 @@ def seed():
     cat_names = ['Bebidas', 'Snacks', 'Doces', 'Café', 'Alimentos', 'Higiene']
     cats = {}
     for name in cat_names:
-        cat, _ = Category.objects.get_or_create(store=store, name=name)
+        cat, _ = Category.objects.get_or_create(store=store, name=name, defaults={'operator': admin})
         cats[name] = cat
     print("Categorias criadas.")
 
@@ -212,6 +212,7 @@ def seed():
                 'min_stock': p['min'],
                 'category': cats[p['cat']],
                 'is_active': True,
+                'operator': admin,
             }
         )
         prod_objs[p['sku']] = obj
@@ -233,7 +234,7 @@ def seed():
         obj, _ = Customer.objects.get_or_create(
             store=store,
             whatsapp=c['whatsapp'],
-            defaults={'name': c['name'], 'email': c['email'], 'address': c['address']}
+            defaults={'name': c['name'], 'email': c['email'], 'address': c['address'], 'operator': admin}
         )
         cust_objs.append(obj)
     print(f"{len(cust_objs)} clientes criados.")

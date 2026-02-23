@@ -15,6 +15,9 @@ export interface StoreSettings {
     out_of_hours_message?: string | null;
     delivery_fee?: number | string | null;
     bot_active?: boolean;
+    stock_alerts_enabled?: boolean;
+    weekly_report_enabled?: boolean;
+    cashier_report_enabled?: boolean;
     logo?: string | null;
     is_active?: boolean;
 }

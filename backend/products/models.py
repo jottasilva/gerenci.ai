@@ -34,3 +34,6 @@ class StockMovement(StoreModel):
     reason = models.CharField(max_length=255, null=True, blank=True)
     operator = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']

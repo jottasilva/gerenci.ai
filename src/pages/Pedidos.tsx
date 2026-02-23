@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { api } from '@/services/api';
 import {
   Plus, Search, MoreHorizontal, Check, Clock, Truck, XCircle,
   Package, ShoppingCart, Trash2, Minus, User, CreditCard, Banknote,
@@ -33,16 +35,30 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import { useGetProducts } from '@/services/product.service';
+import { useGetStore } from '@/services/store.service';
 import { useGetCustomers, useCreateCustomer } from '@/services/customer.service';
-import { useGetOrders, useCreateOrder } from '@/services/order.service';
+import { useGetOrders, useCreateOrder, useUpdateOrderStatus } from '@/services/order.service';
 
 export default function Pedidos() {
   const { data: products = [], isLoading: isLoadingProducts } = useGetProducts();
   const { data: customers = [], isLoading: isLoadingCustomers } = useGetCustomers();
   const { data: orders = [], isLoading: isLoadingOrders } = useGetOrders();
+  const { data: store } = useGetStore();
+  const queryClient = useQueryClient();
   const createOrderMutation = useCreateOrder();
   const createCustomerMutation = useCreateCustomer();
+  const updateStatusMutation = useUpdateOrderStatus();
+
+  const handleUpdateStatus = async (id: string, status: StatusPedido) => {
+    try {
+      await updateStatusMutation.mutateAsync({ id, status });
+      if (selectedOrder && selectedOrder.id === id) {
+        setSelectedOrder({ ...selectedOrder, status });
+      }
+    } catch (err) { }
+  };
 
   const [cart, setCart] = useState<ItemPedido[]>([]);
   const [search, setSearch] = useState('');
@@ -54,6 +70,11 @@ export default function Pedidos() {
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [formaPagto, setFormaPagto] = useState<FormaPagamento>('DINHEIRO');
   const [valorRecebido, setValorRecebido] = useState<string>('');
+  const [deliveryMethod, setDeliveryMethod] = useState<'BALCAO' | 'ENTREGA' | 'RETIRADA'>('BALCAO');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+
+  const [selectedOrder, setSelectedOrder] = useState<Pedido | null>(null);
+  const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
 
   const [isClientSearchOpen, setIsClientSearchOpen] = useState(false);
   const [isClientCreateOpen, setIsClientCreateOpen] = useState(false);
@@ -87,15 +108,25 @@ export default function Pedidos() {
   });
 
   const addToCart = (product: Produto) => {
+    const stockActual = product.estoque ?? product.stock;
     const price = Number(product.price);
     const existing = cart.find(item => item.product === product.id);
+
     if (existing) {
+      if (existing.quantity + 1 > stockActual) {
+        toast.error(`Estoque insuficiente! Disponível: ${stockActual}`);
+        return;
+      }
       setCart(cart.map(item =>
         item.product === product.id
           ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * (item.unit_price || 0) }
           : item
       ));
     } else {
+      if (stockActual < 1) {
+        toast.error(`Produto sem estoque!`);
+        return;
+      }
       setCart([...cart, {
         product: product.id,
         product_name: product.nome || product.name,
@@ -107,9 +138,16 @@ export default function Pedidos() {
   };
 
   const updateQuantity = (productId: string, delta: number) => {
+    const product = products.find(p => p.id === productId);
+    const stockActual = product?.estoque ?? product?.stock ?? 9999;
+
     setCart(cart.map(item => {
       if (item.product === productId) {
         const newQty = Math.max(1, (item.quantity ?? 1) + delta);
+        if (newQty > stockActual) {
+          toast.error(`Estoque insuficiente! Disponível: ${stockActual}`);
+          return item;
+        }
         return { ...item, quantity: newQty, subtotal: newQty * (item.unit_price ?? 0) };
       }
       return item;
@@ -121,6 +159,8 @@ export default function Pedidos() {
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + (Number(item.subtotal) || 0), 0);
+  const feeValue = deliveryMethod === 'ENTREGA' ? Number(store?.delivery_fee || 0) : 0;
+  const finalTotal = cartTotal + feeValue;
 
   const handleFinalizeSale = () => {
     if (cart.length === 0) {
@@ -135,10 +175,16 @@ export default function Pedidos() {
       const orderData = {
         customer: selectedCliente?.id || null,
         customer_name_manual: selectedCliente ? null : clienteManual,
-        total: cartTotal,
+        total: finalTotal,
         discount: 0,
+        forma_pagto: formaPagto,
         payment_method: formaPagto,
-        status: 'ENTREGUE',
+        status: 'FINALIZADO',
+        received_amount: Number(valorRecebido) || finalTotal,
+        change_amount: Math.max(0, (Number(valorRecebido) || finalTotal) - finalTotal),
+        delivery_method: deliveryMethod,
+        delivery_fee: feeValue,
+        delivery_address: deliveryMethod === 'ENTREGA' ? deliveryAddress : null,
         items: cart.map(item => ({
           product: item.product,
           product_name: item.product_name,
@@ -155,9 +201,24 @@ export default function Pedidos() {
       setSelectedCliente(null);
       setFormaPagto('DINHEIRO');
       setValorRecebido('');
+      setDeliveryMethod('BALCAO');
+      setDeliveryAddress('');
       setIsPaymentOpen(false);
       setIsCartOpen(false);
     } catch (err) { }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!window.confirm("Deseja realmente cancelar este pedido? O estoque será estornado.")) return;
+    try {
+      await api.post(`orders/${orderId}/cancel/`);
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setIsOrderDetailOpen(false);
+      toast.success("Pedido cancelado com sucesso!");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Erro ao cancelar pedido.");
+    }
   };
 
   const handleSelectCliente = (c: Cliente) => {
@@ -271,9 +332,15 @@ export default function Pedidos() {
             <span>Subtotal</span>
             <span>R$ {(Number(cartTotal) || 0).toFixed(2).replace('.', ',')}</span>
           </div>
+          {deliveryMethod === 'ENTREGA' && (
+            <div className="flex justify-between text-sm text-primary font-bold">
+              <span>Taxa de Entrega</span>
+              <span>R$ {feeValue.toFixed(2).replace('.', ',')}</span>
+            </div>
+          )}
           <div className="flex justify-between text-base font-display font-extrabold text-foreground">
             <span>Total Geral</span>
-            <span className="text-primary text-xl">R$ {(Number(cartTotal) || 0).toFixed(2).replace('.', ',')}</span>
+            <span className="text-primary text-xl">R$ {finalTotal.toFixed(2).replace('.', ',')}</span>
           </div>
         </div>
 
@@ -426,12 +493,27 @@ export default function Pedidos() {
                       </thead>
                       <tbody>
                         {filteredOrders.map((p, i) => (
-                          <tr key={p.id} className={`border-b border-border/40 hover:bg-muted/30 transition-colors ${i % 2 === 1 ? 'bg-muted/5' : ''}`}>
+                          <tr
+                            key={p.id}
+                            className={`border-b border-border/40 hover:bg-muted/30 transition-colors cursor-pointer ${i % 2 === 1 ? 'bg-muted/5' : ''}`}
+                            onClick={() => {
+                              setSelectedOrder(p);
+                              setIsOrderDetailOpen(true);
+                            }}
+                          >
                             <td className="py-4 px-6 font-mono text-xs text-muted-foreground">#{p.id}</td>
                             <td className="py-4 px-6 font-bold text-foreground">
                               {p.cliente_name || p.cliente_name_manual || 'Balcão'}
                             </td>
                             <td className="py-4 px-6 font-display font-extrabold text-foreground">R$ {parseFloat(p.total.toString()).toFixed(2).replace('.', ',')}</td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-2">
+                                {p.delivery_method === 'BALCAO' && <Warehouse className="h-3.5 w-3.5 text-muted-foreground" />}
+                                {p.delivery_method === 'ENTREGA' && <Truck className="h-3.5 w-3.5 text-primary" />}
+                                {p.delivery_method === 'RETIRADA' && <ShoppingBag className="h-3.5 w-3.5 text-warning" />}
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground">{p.delivery_method || 'BALCAO'}</span>
+                              </div>
+                            </td>
                             <td className="py-4 px-6"><StatusBadge status={p.status} /></td>
                             <td className="py-4 px-6 text-right">
                               <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -528,8 +610,14 @@ export default function Pedidos() {
           <ScrollArea className="max-h-[90vh]">
             <div className="bg-primary p-8 text-primary-foreground">
               <h2 className="text-2xl font-display font-bold">Finalizar Venda</h2>
-              <div className="mt-8 flex justify-between items-end">
-                <span className="text-2xl sm:text-4xl font-display font-extrabold">R$ {(Number(cartTotal) || 0).toFixed(2).replace('.', ',')}</span>
+              <div className="mt-8 space-y-1">
+                <div className="flex justify-between text-xs opacity-70">
+                  <span>Itens: R$ {cartTotal.toFixed(2).replace('.', ',')}</span>
+                  {deliveryMethod === 'ENTREGA' && <span>Entrega: R$ {feeValue.toFixed(2).replace('.', ',')}</span>}
+                </div>
+                <div className="mt-8 flex justify-between items-end">
+                  <span className="text-2xl sm:text-4xl font-display font-extrabold">R$ {finalTotal.toFixed(2).replace('.', ',')}</span>
+                </div>
               </div>
             </div>
 
@@ -537,7 +625,7 @@ export default function Pedidos() {
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Forma de Pagamento</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  {(['DINHEIRO', 'PIX', 'CARTAO_DEBITO', 'CARTAO_CREDITO'] as FormaPagamento[]).map(metodo => (
+                  {(['DINHEIRO', 'PIX'] as FormaPagamento[]).map(metodo => (
                     <button
                       key={metodo}
                       onClick={() => setFormaPagto(metodo)}
@@ -546,12 +634,79 @@ export default function Pedidos() {
                         : 'border-muted bg-muted/20 text-muted-foreground hover:bg-muted/40'
                         }`}
                     >
-                      <CreditCard className="h-6 w-6" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{metodo.replace('_', ' ')}</span>
+                      {metodo === 'DINHEIRO' && <Banknote className="h-6 w-6" />}
+                      {metodo === 'PIX' && <QrCode className="h-6 w-6" />}
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{metodo.replace(/_/g, ' ')}</span>
                     </button>
                   ))}
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Tipo de Entrega</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['BALCAO', 'ENTREGA', 'RETIRADA'] as const).map(metodo => (
+                    <button
+                      key={metodo}
+                      onClick={() => setDeliveryMethod(metodo)}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${deliveryMethod === metodo
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-muted bg-muted/20 text-muted-foreground hover:bg-muted/40'
+                        }`}
+                    >
+                      {metodo === 'BALCAO' && <Warehouse className="h-5 w-5" />}
+                      {metodo === 'ENTREGA' && <Truck className="h-5 w-5" />}
+                      {metodo === 'RETIRADA' && <ShoppingBag className="h-5 w-5" />}
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{metodo}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {deliveryMethod === 'ENTREGA' && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Endereço de Entrega</Label>
+                  <Textarea
+                    placeholder="Rua, número, bairro e complementos..."
+                    value={deliveryAddress}
+                    onChange={e => setDeliveryAddress(e.target.value)}
+                    className="rounded-xl bg-muted/30 border-none resize-none h-24"
+                  />
+                </div>
+              )}
+
+              {formaPagto === 'DINHEIRO' && (
+                <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-muted/30 border border-border">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-muted-foreground">Valor Recebido</Label>
+                    <Input
+                      type="number"
+                      placeholder="0,00"
+                      value={valorRecebido}
+                      onChange={e => setValorRecebido(e.target.value)}
+                      className="bg-background border-border text-lg font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-muted-foreground">Troco</Label>
+                    <div className="h-10 flex items-center px-3 rounded-md bg-background border border-border font-display font-bold text-lg text-primary">
+                      R$ {Math.max(0, (Number(valorRecebido) || 0) - finalTotal).toFixed(2).replace('.', ',')}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {formaPagto === 'PIX' && (
+                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col items-center text-center gap-4">
+                  <div className="h-32 w-32 bg-white p-2 rounded-xl flex items-center justify-center border border-border shadow-inner">
+                    <QrCode className="h-24 w-24 text-foreground opacity-20" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Aguardando Pagamento PIX</p>
+                    <p className="text-xs text-muted-foreground">O QR Code aparecerá aqui após integração</p>
+                  </div>
+                </div>
+              )}
 
               <Button
                 onClick={handleConfirmPayment}
@@ -561,6 +716,94 @@ export default function Pedidos() {
               </Button>
             </div>
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isOrderDetailOpen} onOpenChange={setIsOrderDetailOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-xl rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+          <DialogHeader className="p-6 bg-muted/30 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-display font-bold">Detalhes do Pedido #{selectedOrder?.id}</DialogTitle>
+                <DialogDescription>
+                  {selectedOrder?.created_at && new Date(selectedOrder.created_at).toLocaleString()}
+                </DialogDescription>
+              </div>
+              <StatusBadge status={selectedOrder?.status || 'REALIZADO'} />
+            </div>
+          </DialogHeader>
+          <div className="p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Cliente:</span>
+                <span className="font-bold">{selectedOrder?.cliente_name || selectedOrder?.cliente_name_manual || 'Balcão'}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Forma de Pagamento:</span>
+                <span className="font-bold">{selectedOrder?.payment_method || selectedOrder?.forma_pagto}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Operador:</span>
+                <span className="font-bold">{selectedOrder?.operador_nome || selectedOrder?.operator_name || 'Admin'}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Tipo de Entrega:</span>
+                <div className="flex items-center gap-2 font-bold">
+                  {selectedOrder?.delivery_method === 'BALCAO' && <Warehouse className="h-4 w-4" />}
+                  {selectedOrder?.delivery_method === 'ENTREGA' && <Truck className="h-4 w-4" />}
+                  {selectedOrder?.delivery_method === 'RETIRADA' && <ShoppingBag className="h-4 w-4" />}
+                  {selectedOrder?.delivery_method || 'BALCAO'}
+                </div>
+              </div>
+              {selectedOrder?.delivery_method === 'ENTREGA' && (selectedOrder?.delivery_address || (selectedOrder as any)?.endereco_entrega) && (
+                <div className="space-y-1 pt-2 border-t border-border/50">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Endereço de Entrega:</span>
+                  <p className="text-sm bg-muted/30 p-3 rounded-xl border border-border/50 italic">{selectedOrder.delivery_address || (selectedOrder as any)?.endereco_entrega}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Itens do Pedido</p>
+              <div className="space-y-2 border border-border rounded-xl p-3 bg-muted/10">
+                {(selectedOrder?.items || selectedOrder?.itens || []).map((item, idx) => (
+                  <div key={idx} className="flex justify-between text-sm py-1 border-b border-border/50 last:border-none">
+                    <span>{item.quantity}x {item.product_name}</span>
+                    <span className="font-bold">R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}</span>
+                  </div>
+                ))}
+                {Number(selectedOrder?.delivery_fee || (selectedOrder as any)?.taxa_entrega || 0) > 0 && (
+                  <div className="flex justify-between text-sm py-1 font-bold text-primary">
+                    <span>Taxa de Entrega</span>
+                    <span>R$ {parseFloat((selectedOrder?.delivery_fee || (selectedOrder as any)?.taxa_entrega || 0).toString()).toFixed(2).replace('.', ',')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-end pt-4 border-t border-border gap-4">
+              <div className="space-y-1 min-w-fit">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor Total</p>
+                <p className="text-2xl font-display font-extrabold text-primary">R$ {parseFloat((selectedOrder?.total || 0).toString()).toFixed(2).replace('.', ',')}</p>
+              </div>
+
+              <div className="flex-1 max-w-[200px] space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Alterar Status</p>
+                <select
+                  value={selectedOrder?.status}
+                  onChange={(e) => handleUpdateStatus((selectedOrder as any).id, e.target.value as StatusPedido)}
+                  disabled={updateStatusMutation.isPending}
+                  className="w-full h-10 rounded-xl bg-muted/50 border-none px-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer hover:bg-muted transition-colors"
+                >
+                  <option value="REALIZADO">Realizado (Inicial)</option>
+                  <option value="PREPARANDO">Preparando</option>
+                  <option value="ENVIADO">Enviado</option>
+                  <option value="FINALIZADO">Finalizado</option>
+                  <option value="CANCELADO">Cancelado</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

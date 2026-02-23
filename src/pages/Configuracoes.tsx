@@ -20,12 +20,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { useGetStore, useUpdateStore, StoreSettings } from '@/services/store.service';
+import { useGetStore, useUpdateStore, StoreSettings, useGetStores } from '@/services/store.service';
 import { useGetBillingStatus } from '@/services/billing.service';
 
 export default function Configuracoes() {
   const navigate = useNavigate();
   const { data: store, isLoading: isLoadingStore } = useGetStore();
+  const { data: stores = [] } = useGetStores();
   const { data: billing } = useGetBillingStatus();
   const updateStore = useUpdateStore();
 
@@ -36,6 +37,7 @@ export default function Configuracoes() {
     last_name: '',
     whatsapp: '',
     password: '',
+    store: undefined as number | undefined,
   });
 
   useEffect(() => {
@@ -52,6 +54,9 @@ export default function Configuracoes() {
         out_of_hours_message: store.out_of_hours_message || '',
         delivery_fee: store.delivery_fee || '0.00',
         bot_active: store.bot_active ?? true,
+        stock_alerts_enabled: store.stock_alerts_enabled ?? true,
+        weekly_report_enabled: store.weekly_report_enabled ?? true,
+        cashier_report_enabled: store.cashier_report_enabled ?? true,
       });
     }
 
@@ -62,6 +67,7 @@ export default function Configuracoes() {
         last_name: user.last_name || '',
         whatsapp: user.whatsapp || '',
         password: '',
+        store: typeof user.store === 'number' ? user.store : undefined,
       });
     }
   }, [store]);
@@ -71,8 +77,9 @@ export default function Configuracoes() {
       const dataToSave = { ...userFormData };
       if (!dataToSave.password) delete dataToSave.password;
 
-      await authService.updateProfile(dataToSave);
-      toast.success("Perfil atualizado com sucesso!");
+      await authService.updateProfile(dataToSave as any);
+      toast.success("Perfil e Loja atualizados com sucesso!");
+      setTimeout(() => window.location.reload(), 1500); // Reload to reflect store change in all services
     } catch (error: any) {
       toast.error(error.message || "Erro ao atualizar perfil.");
     }
@@ -330,19 +337,38 @@ export default function Configuracoes() {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label>Loja de Acesso (Gerenciando)</Label>
+                    <Select
+                      value={userFormData.store?.toString()}
+                      onValueChange={(val) => setUserFormData(prev => ({ ...prev, store: parseInt(val) }))}
+                    >
+                      <SelectTrigger className="rounded-xl bg-muted/30 border-none h-11">
+                        <SelectValue placeholder="Selecione uma loja" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border">
+                        {stores.map(s => (
+                          <SelectItem key={s.id} value={s.id?.toString() || ''}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <Button
                     onClick={handleUserSave}
-                    className="w-full sm:w-auto rounded-xl font-bold px-8 h-12 shadow-lg shadow-primary/10 mt-4"
+                    className="w-full sm:w-auto rounded-xl font-bold px-8 h-12 shadow-lg shadow-primary/10 mt-2"
                   >
                     Salvar Dados de Perfil
                   </Button>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </TabsContent >
 
           {/* Bot & WhatsApp Tab */}
-          <TabsContent value="bot" className="m-0 focus-visible:outline-none">
+          < TabsContent value="bot" className="m-0 focus-visible:outline-none" >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="border-border rounded-2xl shadow-sm overflow-hidden">
                 <CardHeader className="bg-muted/10">
@@ -417,10 +443,10 @@ export default function Configuracoes() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </TabsContent >
 
           {/* Financeiro Tab */}
-          <TabsContent value="financeiro" className="m-0 focus-visible:outline-none">
+          < TabsContent value="financeiro" className="m-0 focus-visible:outline-none" >
             <Card className="border-border rounded-2xl shadow-sm overflow-hidden">
               <CardHeader className="bg-muted/10">
                 <CardTitle className="text-lg">Configurações de Venda</CardTitle>
@@ -499,10 +525,10 @@ export default function Configuracoes() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent >
 
           {/* Notificações Tab */}
-          <TabsContent value="notificacoes" className="m-0 focus-visible:outline-none">
+          < TabsContent value="notificacoes" className="m-0 focus-visible:outline-none" >
             <div className="max-w-2xl mx-auto lg:mx-0">
               <Card className="border-border rounded-2xl shadow-sm overflow-hidden">
                 <CardHeader className="bg-muted/10">
@@ -510,16 +536,19 @@ export default function Configuracoes() {
                   <CardDescription>Escolha como e quando você quer ser notificado</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-8">
-                  <div className="space-y-4 opacity-50">
+                  <div className="space-y-4">
                     <h3 className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                      <Database className="h-3 w-3" /> Inventário (BREVE)
+                      <Database className="h-3 w-3" /> Inventário
                     </h3>
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5 pr-4">
                         <Label className="font-bold">Destaque de Estoque Baixo</Label>
                         <p className="text-[10px] text-muted-foreground">Notificar quando atingir estoque mínimo</p>
                       </div>
-                      <Switch disabled />
+                      <Switch
+                        checked={formData.stock_alerts_enabled}
+                        onCheckedChange={checked => handleInputChange('stock_alerts_enabled', checked)}
+                      />
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between">
@@ -527,7 +556,10 @@ export default function Configuracoes() {
                         <Label className="font-bold">Relatório de Reposição Semanal</Label>
                         <p className="text-[10px] text-muted-foreground">Enviar às segundas 08:00 no WhatsApp admin</p>
                       </div>
-                      <Switch disabled />
+                      <Switch
+                        checked={formData.weekly_report_enabled}
+                        onCheckedChange={checked => handleInputChange('weekly_report_enabled', checked)}
+                      />
                     </div>
                   </div>
 
@@ -540,23 +572,26 @@ export default function Configuracoes() {
                         <Label className="font-bold">Resumo de Fechamento de Caixa</Label>
                         <p className="text-[10px] text-muted-foreground">Enviar faturamento do dia para o proprietário</p>
                       </div>
-                      <Switch defaultChecked />
+                      <Switch
+                        checked={formData.cashier_report_enabled}
+                        onCheckedChange={checked => handleInputChange('cashier_report_enabled', checked)}
+                      />
                     </div>
                     <Separator />
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between opacity-50">
                       <div className="space-y-0.5 pr-4">
                         <Label className="font-bold">Alerta de Login em Novo Dispositivo</Label>
-                        <p className="text-[10px] text-muted-foreground">Segurança para sua conta administrativa</p>
+                        <p className="text-[10px] text-muted-foreground">Segurança para sua conta administrativa (BREVE)</p>
                       </div>
-                      <Switch defaultChecked />
+                      <Switch disabled />
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-        </div>
-      </Tabs>
-    </div>
+          </TabsContent >
+        </div >
+      </Tabs >
+    </div >
   );
 }

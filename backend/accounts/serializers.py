@@ -3,11 +3,12 @@ from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
+    id = serializers.CharField(source='whatsapp', read_only=True)
 
     class Meta:
         model = User
         fields = ('id', 'whatsapp', 'first_name', 'last_name', 'role', 'store', 'ativo', 'password')
-        read_only_fields = ('id', 'store')
+        read_only_fields = ('role',) # Prevent self-promotion through profile update
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)

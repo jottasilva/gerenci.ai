@@ -17,12 +17,16 @@ class Store(models.Model):
     out_of_hours_message = models.TextField(null=True, blank=True)
     delivery_fee = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     bot_active = models.BooleanField(default=True)
+    stock_alerts_enabled = models.BooleanField(default=True)
+    weekly_report_enabled = models.BooleanField(default=True)
+    cashier_report_enabled = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
 
 class StoreModel(models.Model):
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='%(class)ss')
+    operator = models.ForeignKey('accounts.User', on_delete=models.CASCADE, null=True, blank=True, related_name='%(class)s_created')
     
     class Meta:
         abstract = True

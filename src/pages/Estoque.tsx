@@ -69,7 +69,7 @@ export default function Estoque() {
             <Button
               variant="outline"
               onClick={() => window.location.href = '/produtos'}
-              className="rounded-xl font-bold border-primary/20 text-primary hover:bg-primary/5 h-12"
+              className="rounded-xl font-bold border-primary/20 text-primary hover:bg-primary hover:text-white transition-all h-12"
             >
               <Plus className="h-4 w-4 mr-2" /> Novo Produto
             </Button>
@@ -123,8 +123,8 @@ export default function Estoque() {
                 <tr key={m.id} className={`border-b border-border/50 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}>
                   <td className="py-3 px-3">
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md ${(m.type || m.tipo) === 'ENTRADA' ? 'bg-primary/10 text-primary' :
-                        (m.type || m.tipo) === 'SAIDA' ? 'bg-destructive/10 text-destructive' :
-                          'bg-orange-500/10 text-orange-500'
+                      (m.type || m.tipo) === 'SAIDA' ? 'bg-destructive/10 text-destructive' :
+                        'bg-orange-500/10 text-orange-500'
                       }`}>
                       {(m.type || m.tipo) === 'ENTRADA' ? <ArrowDown className="h-3 w-3" /> :
                         (m.type || m.tipo) === 'SAIDA' ? <ArrowUp className="h-3 w-3" /> :

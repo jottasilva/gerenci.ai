@@ -19,15 +19,36 @@ class MultiTenantViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_authenticated:
-            store = self._get_effective_store()
-            if store:
-                return self.queryset.filter(store=store)
-        return self.queryset.none()
+        if not user.is_authenticated:
+            return self.queryset.none()
+        
+        store = self._get_effective_store()
+        if not store:
+            return self.queryset.none()
+
+        # Base filter by store
+        qs = self.queryset.filter(store=store)
+
+        # Strict isolation: Non-admins only see results linked to their WhatsApp/Operator ID
+        if not (user.is_staff or getattr(user, 'role', None) == 'ADMIN'):
+            # Check if model has operator field
+            if hasattr(self.model, 'operator') or 'operator' in [f.name for f in self.model._meta.get_fields()]:
+                # Special case for User model: they should at least see themselves
+                if self.model == user.__class__:
+                    from django.db.models import Q
+                    qs = qs.filter(Q(operator=user) | Q(whatsapp=user.whatsapp))
+                else:
+                    qs = qs.filter(operator=user)
+            
+        return qs
 
     def perform_create(self, serializer):
         store = self._get_effective_store()
-        serializer.save(store=store)
+        # Automatically set the operator as the current user if the field exists
+        kwargs = {'store': store}
+        if hasattr(serializer.Meta.model, 'operator') or 'operator' in [f.name for f in serializer.Meta.model._meta.get_fields()]:
+            kwargs['operator'] = self.request.user
+        serializer.save(**kwargs)
 
 
 class StoreViewSet(viewsets.ModelViewSet):

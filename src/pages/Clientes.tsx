@@ -1,4 +1,4 @@
-import { Search, Plus, Pencil, Trash2, MoreHorizontal, Loader2, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, MoreHorizontal, Loader2, AlertTriangle, User, Building2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Cliente } from '@/types';
 import { useGetCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '@/services/customer.service';
@@ -39,6 +45,11 @@ export default function Clientes() {
     whatsapp: '',
     email: '',
     endereco: '',
+    cpf_cnpj: '',
+    negocio: '',
+    segmento: '',
+    plano: 'BRONZE',
+    agente_ativo: false,
     ativo: true,
   });
 
@@ -58,6 +69,11 @@ export default function Clientes() {
         whatsapp: '',
         email: '',
         endereco: '',
+        cpf_cnpj: '',
+        negocio: '',
+        segmento: '',
+        plano: 'BRONZE',
+        agente_ativo: false,
         ativo: true,
       });
     }
@@ -72,7 +88,21 @@ export default function Clientes() {
 
     try {
       if (editingClient) {
-        await updateMutation.mutateAsync({ ...editingClient, ...formData } as Cliente);
+        const {
+          id: _id, nome: _nome, ativo: _ativo, total_compras: _total, ...cleanData
+        } = { ...editingClient, ...formData } as any;
+
+        await updateMutation.mutateAsync({
+          id: editingClient.id,
+          name: formData.nome || (editingClient as any).name,
+          is_active: formData.ativo !== undefined ? formData.ativo : (editingClient as any).is_active,
+          address: formData.endereco || (editingClient as any).endereco || (editingClient as any).address,
+          business_name: formData.negocio || (editingClient as any).negocio || (editingClient as any).business_name,
+          business_segment: formData.segmento || (editingClient as any).segmento || (editingClient as any).business_segment,
+          subscription_plan: formData.plano || (editingClient as any).plano || (editingClient as any).subscription_plan,
+          agent_active: formData.agente_ativo !== undefined ? formData.agente_ativo : (editingClient as any).agente_ativo || (editingClient as any).agent_active,
+          ...cleanData
+        } as Cliente);
       } else {
         await createMutation.mutateAsync(formData as Omit<Cliente, 'id'>);
       }
@@ -188,60 +218,172 @@ export default function Clientes() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-3xl border-none shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display font-bold text-xl">{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
-            <DialogDescription className="text-xs">
-              Preencha os dados do cliente abaixo.
+        <DialogContent className="sm:max-w-[60vw] rounded-3xl border-none shadow-2xl p-0 overflow-hidden bg-card">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="font-display font-bold text-2xl">
+              {editingClient ? 'Editar Registro' : 'Novo Registro'}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Gerencie as informações pessoais e comerciais do cliente.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-5 py-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="nome" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Nome</Label>
-              <Input
-                id="nome"
-                value={formData.nome || ''}
-                onChange={e => setFormData({ ...formData, nome: e.target.value })}
-                className="h-11 rounded-xl bg-muted/30 border-none"
-                placeholder="Nome completo"
-              />
+
+          <Tabs defaultValue="cliente" className="w-full">
+            <div className="px-6 border-b border-border">
+              <TabsList className="bg-transparent h-12 p-0 gap-6">
+                <TabsTrigger
+                  value="cliente"
+                  className="bg-transparent h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary font-bold px-0 gap-2"
+                >
+                  <User className="h-4 w-4" /> Dados do Cliente
+                </TabsTrigger>
+                <TabsTrigger
+                  value="negocio"
+                  className="bg-transparent h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary font-bold px-0 gap-2"
+                >
+                  <Building2 className="h-4 w-4" /> Dados do Negócio
+                </TabsTrigger>
+              </TabsList>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="whatsapp" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">WhatsApp</Label>
-              <Input
-                id="whatsapp"
-                value={formData.whatsapp || ''}
-                onChange={e => setFormData({ ...formData, whatsapp: e.target.value })}
-                className="h-11 rounded-xl bg-muted/30 border-none"
-                placeholder="Ex: 11999998888"
-              />
+
+            <div className="p-6">
+              <TabsContent value="cliente" className="mt-0 space-y-5">
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="nome" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Nome</Label>
+                    <Input
+                      id="nome"
+                      value={formData.nome || ''}
+                      onChange={e => setFormData({ ...formData, nome: e.target.value })}
+                      className="h-11 rounded-xl bg-muted/30 border-none"
+                      placeholder="Nome completo do proprietário"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="whatsapp" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">WhatsApp</Label>
+                    <Input
+                      id="whatsapp"
+                      value={formData.whatsapp || ''}
+                      onChange={e => setFormData({ ...formData, whatsapp: e.target.value })}
+                      className="h-11 rounded-xl bg-muted/30 border-none"
+                      placeholder="Ex: 11999998888"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email || ''}
+                      onChange={e => setFormData({ ...formData, email: e.target.value })}
+                      className="h-11 rounded-xl bg-muted/30 border-none"
+                      placeholder="Ex: contato@cliente.com"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="cpf_cnpj" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">CPF / CNPJ</Label>
+                    <Input
+                      id="cpf_cnpj"
+                      value={formData.cpf_cnpj || ''}
+                      onChange={e => setFormData({ ...formData, cpf_cnpj: e.target.value })}
+                      className="h-11 rounded-xl bg-muted/30 border-none"
+                      placeholder="Identificação do cliente"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="endereco" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Endereço Residencial</Label>
+                  <Input
+                    id="endereco"
+                    value={formData.endereco || formData.address || ''}
+                    onChange={e => setFormData({ ...formData, endereco: e.target.value })}
+                    className="h-11 rounded-xl bg-muted/30 border-none"
+                    placeholder="Rua, Número, Bairro, Cidade"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <input
+                    type="checkbox"
+                    id="ativo"
+                    checked={formData.ativo}
+                    onChange={e => setFormData({ ...formData, ativo: e.target.checked })}
+                    className="h-5 w-5 rounded-lg border-muted-foreground/30 text-primary focus:ring-primary/20 transition-all"
+                  />
+                  <Label htmlFor="ativo" className="text-sm font-bold cursor-pointer">Cliente Ativo na Plataforma</Label>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="negocio" className="mt-0 space-y-5">
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="negocio" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Nome do Negócio</Label>
+                    <Input
+                      id="negocio"
+                      value={(formData as any).negocio || (formData as any).business_name || ''}
+                      onChange={e => setFormData({ ...formData, negocio: e.target.value } as any)}
+                      className="h-11 rounded-xl bg-muted/30 border-none"
+                      placeholder="Nome da empresa/loja"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="segmento" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Segmento</Label>
+                    <Input
+                      id="segmento"
+                      value={(formData as any).segmento || (formData as any).business_segment || ''}
+                      onChange={e => setFormData({ ...formData, segmento: e.target.value } as any)}
+                      className="h-11 rounded-xl bg-muted/30 border-none"
+                      placeholder="Ex: Restaurante, Loja, etc."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="plano" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Plano de Assinatura</Label>
+                    <select
+                      id="plano"
+                      value={(formData as any).plano || (formData as any).subscription_plan || 'BRONZE'}
+                      onChange={e => setFormData({ ...formData, plano: e.target.value } as any)}
+                      className="w-full h-11 rounded-xl bg-muted/30 border-none px-3 text-sm focus:ring-2 focus:ring-primary/20 appearance-none font-medium"
+                    >
+                      <option value="BRONZE">BRONZE - Plano Básico</option>
+                      <option value="SILVER">SILVER - Plano Intermediário</option>
+                      <option value="GOLD">GOLD - Plano Premium</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5 justify-center pt-5">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="agente_ativo"
+                        checked={(formData as any).agente_ativo || (formData as any).agent_active || false}
+                        onChange={e => setFormData({ ...formData, agente_ativo: e.target.checked } as any)}
+                        className="h-5 w-5 rounded-lg border-muted-foreground/30 text-primary focus:ring-primary/20 transition-all"
+                      />
+                      <Label htmlFor="agente_ativo" className="text-sm font-bold cursor-pointer">Agente de IA Ativado</Label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 mt-4">
+                  <p className="text-xs text-primary font-medium leading-relaxed">
+                    <AlertTriangle className="h-3 w-3 inline mr-1 -mt-0.5" />
+                    As configurações de negócio afetam diretamente como a IA se apresenta e interage com os clientes desta loja no WhatsApp.
+                  </p>
+                </div>
+              </TabsContent>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email || ''}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                className="h-11 rounded-xl bg-muted/30 border-none"
-                placeholder="Opcional"
-              />
-            </div>
-            <div className="flex items-center gap-3 pt-2">
-              <input
-                type="checkbox"
-                id="ativo"
-                checked={formData.ativo}
-                onChange={e => setFormData({ ...formData, ativo: e.target.checked })}
-                className="h-5 w-5 rounded-lg border-muted-foreground/30 text-primary focus:ring-primary/20 transition-all"
-              />
-              <Label htmlFor="ativo" className="text-sm font-bold cursor-pointer">Cliente Ativo</Label>
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl h-11 flex-1">Cancelar</Button>
-            <Button onClick={handleSave} className="rounded-xl h-11 flex-1 font-bold shadow-lg shadow-primary/20">
-              {(createMutation.isPending || updateMutation.isPending) ? 'Salvando...' : 'Salvar Dados'}
+          </Tabs>
+
+          <DialogFooter className="p-6 bg-muted/20 gap-3 border-t border-border">
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl h-11 px-6">Cancelar</Button>
+            <Button onClick={handleSave} className="rounded-xl h-11 px-8 font-bold shadow-lg shadow-primary/20">
+              {(createMutation.isPending || updateMutation.isPending) ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </DialogFooter>
         </DialogContent>

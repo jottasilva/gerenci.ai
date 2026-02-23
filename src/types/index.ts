@@ -27,6 +27,7 @@ export interface Pedido {
   cliente_name_manual?: string;
   operator?: string;
   operator_name?: string;
+  operador_nome?: string; // Compatibility
   total: number;
   discount: number;
   desconto?: number; // Compatibility
@@ -39,6 +40,18 @@ export interface Pedido {
   criado_em?: string; // Compatibility
   items: ItemPedido[];
   itens?: ItemPedido[]; // Compatibility
+  received_amount?: number;
+  valor_recebido?: number; // Compatibility
+  change_amount?: number;
+  troco?: number; // Compatibility
+  delivery_method?: 'BALCAO' | 'ENTREGA' | 'RETIRADA';
+  tipo_entrega?: 'BALCAO' | 'ENTREGA' | 'RETIRADA'; // Compatibility
+  pix_qr_code?: string;
+  pix_qrcode?: string; // Compatibility
+  delivery_fee?: number;
+  taxa_entrega?: number; // Compatibility
+  delivery_address?: string;
+  endereco_entrega?: string; // Compatibility
 }
 
 export interface ItemPedido {
@@ -57,12 +70,25 @@ export interface ItemPedido {
 export interface Cliente {
   id: string;
   nome: string;
+  name?: string; // Standard
   whatsapp: string;
   email?: string;
   endereco?: string;
+  address?: string; // Standard
   cpf_cnpj?: string;
   total_compras: number | string;
   ativo: boolean;
+  is_active?: boolean; // Standard
+
+  // Platform Management
+  business_name?: string;
+  negocio?: string; // Alias
+  business_segment?: string;
+  segmento?: string; // Alias
+  subscription_plan?: 'BRONZE' | 'SILVER' | 'GOLD';
+  plano?: 'BRONZE' | 'SILVER' | 'GOLD'; // Alias
+  agent_active?: boolean;
+  agente_ativo?: boolean; // Alias
 }
 
 export interface Operador {
@@ -75,7 +101,7 @@ export interface Operador {
   role: 'ADMIN' | 'GERENTE' | 'VENDEDOR';
   ativo?: boolean;
   is_active?: boolean;
-  store?: string | null;
+  store?: number | null;
 }
 
 export interface MovimentoEstoque {
@@ -96,5 +122,5 @@ export interface MovimentoEstoque {
   criado_em?: string; // Compatibility
 }
 
-export type StatusPedido = 'ABERTO' | 'CONFIRMADO' | 'EM_PREPARO' | 'ENTREGUE' | 'CANCELADO';
+export type StatusPedido = 'REALIZADO' | 'PREPARANDO' | 'ENVIADO' | 'FINALIZADO' | 'CANCELADO';
 export type FormaPagamento = 'DINHEIRO' | 'PIX' | 'CARTAO_DEBITO' | 'CARTAO_CREDITO' | 'FIADO';

@@ -117,7 +117,13 @@ export default function Produtos() {
 
     try {
       if (editingProduct) {
-        await updateMutation.mutateAsync({ ...editingProduct, ...formData } as Produto);
+        // Clean up data before sending to backend to avoid "stale" alias fields overwriting new data
+        const {
+          nome, preco, estoque, estoque_min, ativo, categoria,
+          categoria_name, id, ...cleanData
+        } = { ...editingProduct, ...formData } as any;
+
+        await updateMutation.mutateAsync({ id: editingProduct.id, ...cleanData } as Produto);
       } else {
         await createMutation.mutateAsync(formData as Omit<Produto, 'id'>);
       }
@@ -231,7 +237,7 @@ export default function Produtos() {
             </div>
             <div className="flex justify-between text-xs text-destructive">
               <span>Estoque Baixo</span>
-              <span className="font-bold">{products.filter(p => p.stock <= p.stock_min).length}</span>
+              <span className="font-bold">{products.filter(p => (p.estoque ?? p.stock) <= (p.estoque_min ?? p.stock_min)).length}</span>
             </div>
           </div>
         </div>
