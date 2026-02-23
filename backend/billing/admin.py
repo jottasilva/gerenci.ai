@@ -24,3 +24,13 @@ class UsageTrackingAdmin(admin.ModelAdmin):
 class BillingEventAdmin(admin.ModelAdmin):
     list_display = ['store', 'event_type', 'created_at']
     list_filter = ['event_type']
+
+
+from .models import LicenseKey
+
+@admin.register(LicenseKey)
+class LicenseKeyAdmin(admin.ModelAdmin):
+    list_display = ['key', 'plan', 'duration_days', 'is_used', 'activated_at', 'store']
+    list_filter = ['is_used', 'plan']
+    search_fields = ['key', 'store__name']
+    readonly_fields = ['activated_at', 'store', 'is_used']

@@ -17,7 +17,20 @@ export const orderService = {
     updateOrderStatus: async (id: string, status: string): Promise<Pedido> => {
         const response = await api.patch(`orders/${id}/`, { status });
         return response.data;
+    },
+
+    getStats: async (period: string = 'diario'): Promise<any> => {
+        const response = await api.get('orders/stats/', { params: { period } });
+        return response.data;
     }
+};
+
+export const useGetDashboardStats = (period: string = 'diario') => {
+    return useQuery({
+        queryKey: ['dashboard-stats', period],
+        queryFn: () => orderService.getStats(period),
+        staleTime: 60 * 1000, // 1 minute
+    });
 };
 
 export const useGetOrders = () => {

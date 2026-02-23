@@ -1,28 +1,7 @@
 import { api } from './api';
-import { useQuery } from '@tanstack/react-query';
-
-export interface PlanLimits {
-    max_products: number;        // -1 = unlimited
-    max_operators: number;
-    max_whatsapp: number;
-    advanced_reports: boolean;
-    api_access: boolean;
-    multi_store: boolean;
-    priority_support: boolean;
-    dedicated_support: boolean;
-    sla: boolean;
-}
-
-export interface SubscriptionPlan {
-    id: string;
-    name: string;
-    slug: 'basico' | 'pro' | 'enterprise';
-    price: string;
-    limits: PlanLimits;
-    features: string[];
-    is_highlighted: boolean;
-    description: string;
-}
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { SubscriptionPlan, PlanLimits } from '@/types';
+export type { SubscriptionPlan, PlanLimits };
 
 export interface SubscriptionData {
     id: string;
@@ -97,6 +76,30 @@ export const billingService = {
         const response = await api.post('license-keys/activate/', { key });
         return response.data;
     },
+
+    deleteKey: async (id: number): Promise<void> => {
+        await api.delete(`license-keys/${id}/`);
+    },
+
+    renewKey: async (id: number): Promise<any> => {
+        const response = await api.post(`license-keys/${id}/renew/`);
+        return response.data;
+    },
+
+    // Plan CRUD
+    createPlan: async (data: Partial<SubscriptionPlan>): Promise<SubscriptionPlan> => {
+        const response = await api.post('plans/', data);
+        return response.data;
+    },
+
+    updatePlan: async (id: number, data: Partial<SubscriptionPlan>): Promise<SubscriptionPlan> => {
+        const response = await api.put(`plans/${id}/`, data);
+        return response.data;
+    },
+
+    deletePlan: async (id: number): Promise<void> => {
+        await api.delete(`plans/${id}/`);
+    },
 };
 
 export function useGetBillingStatus() {
@@ -114,4 +117,59 @@ export function useGetPlans() {
         queryFn: billingService.getPlans,
         staleTime: 5 * 60_000, // 5 min
     });
+}
+
+export function useGetLicenseKeys() {
+    return useQuery({
+        queryKey: ['license-keys'],
+        queryFn: billingService.getKeys,
+    });
+}
+
+export function useGenerateLicenseKey() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: billingService.generateKey,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['license-keys'] });
+        }
+    });
+}
+
+export function useDeleteLicenseKey() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: billingService.deleteKey,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['license-keys'] });
+        }
+    });
+}
+
+export function useRenewLicenseKey() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: billingService.renewKey,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['license-keys'] });
+        }
+    });
+}
+
+export function usePlanMutations() {
+    const queryClient = useQueryClient();
+    return {
+        create: useMutation({
+            mutationFn: billingService.createPlan,
+            onSuccess: () => queryClient.invalidateQueries({ queryKey: ['billing-plans'] })
+        }),
+        update: useMutation({
+            mutationFn: (data: { id: number; data: Partial<SubscriptionPlan> }) => billingService.updatePlan(data.id, data.data),
+            onSuccess: () => queryClient.invalidateQueries({ queryKey: ['billing-plans'] })
+        }),
+        delete: useMutation({
+            mutationFn: billingService.deletePlan,
+            onSuccess: () => queryClient.invalidateQueries({ queryKey: ['billing-plans'] })
+        })
+    };
 }

@@ -1,7 +1,17 @@
 import { useState } from 'react';
-import { DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, ChevronRight, Loader2, FileDown, Warehouse, Truck, ShoppingBag, Check, XCircle } from 'lucide-react';
+import { DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, ChevronRight, Loader2, FileDown, Warehouse, Truck, ShoppingBag, Check, XCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart, Cell } from 'recharts';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell,
+  AreaChart, Area
+} from 'recharts';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { KPICard } from '@/components/shared/KPICard';
@@ -9,8 +19,9 @@ import { StatusBadge, PagamentoBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGetProducts } from '@/services/product.service';
-import { useGetOrders, useUpdateOrderStatus } from '@/services/order.service';
+import { useGetOrders, useUpdateOrderStatus, useGetDashboardStats } from '@/services/order.service';
 import { useGetCustomers } from '@/services/customer.service';
+import { DashboardTutorial } from '@/components/dashboard/DashboardTutorial';
 import { exportToCSV } from '@/utils/exportUtils';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
@@ -20,12 +31,15 @@ import { Pedido, StatusPedido } from '@/types';
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function Dashboard() {
+  const [period, setPeriod] = useState('diario');
   const { data: products = [], isLoading: isLoadingProducts } = useGetProducts();
   const { data: orders = [], isLoading: isLoadingOrders } = useGetOrders();
   const { data: customers = [], isLoading: isLoadingCustomers } = useGetCustomers();
+  const { data: stats, isLoading: isLoadingStats, error } = useGetDashboardStats(period);
 
   const [selectedOrder, setSelectedOrder] = useState<Pedido | null>(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const queryClient = useQueryClient();
   const updateStatusMutation = useUpdateOrderStatus();
 
@@ -51,7 +65,7 @@ export default function Dashboard() {
     } catch (err) { }
   };
 
-  if (isLoadingProducts || isLoadingOrders || isLoadingCustomers) {
+  if (isLoadingProducts || isLoadingOrders || isLoadingCustomers || isLoadingStats) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
@@ -61,52 +75,28 @@ export default function Dashboard() {
   }
 
   const semEstoque = products.filter(p => p.stock <= 0);
-  const estoqueBaixo = products.filter(p => p.stock > 0 && p.stock <= p.stock_min);
-  const ordersValidas = orders.filter(p => p.status !== 'CANCELADO');
-  const totalFaturamento = ordersValidas.reduce((sum, p) => sum + parseFloat(p.total.toString()), 0);
-  const ticketMedio = ordersValidas.length > 0 ? totalFaturamento / ordersValidas.length : 0;
+  const estoqueBaixo = products.filter(p => p.stock > 0 && p.stock <= (p.min_stock || p.stock_min || 10));
 
-  // Category Distribution
-  const vendasPorCategoria = products.reduce((acc: any[], prod) => {
-    const totalProd = ordersValidas
-      .flatMap(p => p.items || [])
-      .filter(item => item.product === prod.id)
-      .reduce((sum, item) => sum + parseFloat(item.subtotal.toString()), 0);
+  const kpis = stats?.kpis || {
+    total_revenue: 0,
+    avg_ticket: 0,
+    total_orders: 0,
+    total_customers: 0
+  };
 
-    const catName = prod.category_name || "Sem Categoria";
-    const existingCat = acc.find(c => c.name === catName);
-    if (existingCat) {
-      existingCat.value += totalProd;
-    } else if (totalProd > 0) {
-      acc.push({ name: catName, value: totalProd });
-    }
-    return acc;
-  }, []);
-
-  // Top Products
-  const topProdutos = products
-    .map(prod => ({
-      id: prod.id,
-      nome: prod.name,
-      total: ordersValidas
-        .flatMap(p => p.items || [])
-        .filter(item => item.product === prod.id)
-        .reduce((sum, item) => sum + parseFloat(item.subtotal.toString()), 0)
-    }))
-    .filter(p => p.total > 0)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 5);
+  const salesByCategory = stats?.category_sales || [];
+  const topProducts = stats?.top_products || [];
 
   const handleExport = () => {
     const reportData = [
-      { metrica: 'Faturamento Total', valor: `R$ ${totalFaturamento.toFixed(2)}` },
-      { metrica: 'Ticket Médio', valor: `R$ ${ticketMedio.toFixed(2)}` },
-      { metrica: 'Total de Pedidos', valor: orders.length },
-      { metrica: 'Clientes Base', valor: customers.length },
+      { metrica: 'Faturamento Total', valor: `R$ ${kpis.total_revenue.toFixed(2)}` },
+      { metrica: 'Ticket Médio', valor: `R$ ${kpis.avg_ticket.toFixed(2)}` },
+      { metrica: 'Total de Pedidos', valor: kpis.total_orders },
+      { metrica: 'Clientes Base', valor: kpis.total_customers },
     ];
 
     // Aggregating more detailed data if needed
-    const topProdData = topProdutos.map(p => ({
+    const topProdData = topProducts.map((p: any) => ({
       produto: p.nome,
       total_vendas: `R$ ${p.total.toFixed(2)}`
     }));
@@ -125,18 +115,57 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <PageHeader titulo="Dashboard" subtitulo="Visão geral e inteligência do seu negócio" />
-        <Button onClick={handleExport} variant="outline" className="rounded-xl border-primary/20 text-primary hover:bg-primary hover:text-white font-bold h-11 px-6 sm:w-auto w-full transition-all">
-          <FileDown className="mr-2 h-4 w-4" /> Exportar Relatório
-        </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-foreground tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground font-medium">Bem-vindo de volta ao seu centro de comando.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[140px] rounded-xl font-bold">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="diario">Diário</SelectItem>
+              <SelectItem value="semanal">Semanal</SelectItem>
+              <SelectItem value="mensal">Mensal</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            className="rounded-xl border-dashed font-bold h-10 px-6"
+            onClick={() => exportToCSV(stats?.daily_sales || [], 'relatorio_vendas')}
+          >
+            <Download className="mr-2 h-4 w-4" /> Exportar Relatório
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard titulo="Faturamento Total" valor={`R$ ${totalFaturamento.toFixed(2).replace('.', ',')}`} variacao={15.2} icon={DollarSign} />
-        <KPICard titulo="Ticket Médio" valor={`R$ ${ticketMedio.toFixed(2).replace('.', ',')}`} variacao={5.4} icon={TrendingUp} />
-        <KPICard titulo="Total de Pedidos" valor={String(orders.length)} variacao={12.8} icon={ShoppingCart} />
-        <KPICard titulo="Clientes Base" valor={String(customers.length)} variacao={2.1} icon={Users} />
+        <KPICard
+          titulo="Vendas Hoje"
+          valor={`R$ ${(stats?.today?.revenue || 0).toFixed(2).replace('.', ',')}`}
+          variacao={5.2}
+          icon={DollarSign}
+        />
+        <KPICard
+          titulo="Pedidos Hoje"
+          valor={String(stats?.today?.orders || 0)}
+          variacao={12.8}
+          icon={ShoppingCart}
+        />
+        <KPICard
+          titulo="Ticket Médio Hoje"
+          valor={`R$ ${(stats?.today?.avg_ticket || 0).toFixed(2).replace('.', ',')}`}
+          variacao={2.4}
+          icon={TrendingUp}
+        />
+        <KPICard
+          titulo="Total Clientes"
+          valor={String(kpis.total_customers)}
+          variacao={2.1}
+          icon={Users}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -192,13 +221,12 @@ export default function Dashboard() {
           <h3 className="font-display font-bold text-foreground mb-6">Faturamento por Categoria</h3>
           <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={vendasPorCategoria}>
+              <BarChart data={salesByCategory}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
                 <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
                 <YAxis fontSize={10} axisLine={false} tickLine={false} />
-                <Tooltip />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
-                  {vendasPorCategoria.map((entry, index) => (
+                  {salesByCategory.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
@@ -212,7 +240,7 @@ export default function Dashboard() {
         <div className="rounded-2xl border border-border bg-card p-5">
           <h3 className="font-display font-bold text-foreground mb-6">Produtos Mais Vendidos</h3>
           <div className="space-y-5">
-            {topProdutos.length > 0 ? topProdutos.map((p, i) => (
+            {topProducts.length > 0 ? topProducts.map((p: any, i: number) => (
               <div key={p.id} className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center font-bold">{i + 1}</div>
                 <div className="flex-1">
@@ -221,7 +249,7 @@ export default function Dashboard() {
                     <p className="text-xs font-bold">R$ {p.total.toFixed(2).replace('.', ',')}</p>
                   </div>
                   <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                    <div className="bg-primary h-full" style={{ width: `${(p.total / topProdutos[0].total) * 100}%` }} />
+                    <div className="bg-primary h-full" style={{ width: `${(p.total / topProducts[0].total) * 100}%` }} />
                   </div>
                 </div>
               </div>
@@ -351,6 +379,7 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+      <DashboardTutorial />
     </div>
   );
 }

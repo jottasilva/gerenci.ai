@@ -27,6 +27,7 @@ class BillingViewSet(viewsets.ViewSet):
             return Response({'error': 'No subscription found.', 'code': 'no_subscription'}, status=404)
 
         usage = subscription_service.get_usage(store)
+        usage.refresh_counts() # Refresh from DB for 100% accuracy
         plan = sub.plan
 
         # Build limits & warnings
@@ -110,6 +111,24 @@ class LicenseKeyViewSet(viewsets.ModelViewSet):
             return super().get_queryset()
         return LicenseKey.objects.none()
 
+    @action(detail=True, methods=['post'])
+    def renew(self, request, pk=None):
+        """
+        POST /api/license-keys/{id}/renew/
+        Generates a new key with same plan and duration as this one.
+        """
+        old_key = self.get_object()
+        import random, string
+        new_key_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4)) + '-' + \
+                      ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        
+        new_key = LicenseKey.objects.create(
+            key=new_key_str,
+            plan=old_key.plan,
+            duration_days=old_key.duration_days
+        )
+        return Response(LicenseKeySerializer(new_key).data, status=status.HTTP_201_CREATED)
+
     @action(detail=False, methods=['post'])
     def activate(self, request):
         """
@@ -135,8 +154,21 @@ class LicenseKeyViewSet(viewsets.ModelViewSet):
             
         return Response({'message': message, 'plan': license_key.plan.name})
 
-class SubscriptionPlanViewSet(viewsets.ReadOnlyModelViewSet):
-    """GET /api/plans/ — Public endpoint for plan listing."""
-    queryset = SubscriptionPlan.objects.filter(is_active=True)
+class SubscriptionPlanViewSet(viewsets.ModelViewSet):
+    """
+    CRUD for Plans. 
+    Public GET for listing active ones.
+    Admin only for POST/PUT/DELETE.
+    """
+    queryset = SubscriptionPlan.objects.all().order_by('price')
     serializer_class = SubscriptionPlanSerializer
-    permission_classes = [permissions.AllowAny]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated(), permissions.IsAdminUser()]
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated and (self.request.user.is_staff or self.request.user.role == 'ADMIN'):
+            return SubscriptionPlan.objects.all()
+        return SubscriptionPlan.objects.filter(is_active=True)

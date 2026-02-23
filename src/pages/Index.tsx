@@ -9,6 +9,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { ChatMockup } from '@/components/landing/ChatMockup';
 import { AnimatedBackground } from '@/components/landing/AnimatedBackground';
+import { useGetPlans } from '@/services/billing.service';
+import { SubscriptionPlan } from '@/types';
 import {
   Sheet,
   SheetContent,
@@ -34,11 +36,32 @@ const steps = [
   { title: 'Acompanhe pelo painel', icon: LayoutDashboard },
 ];
 
-const plans = [
-  { name: 'Básico', price: '97', features: ['1 número WhatsApp', 'Até 500 produtos', '2 operadores', 'Relatórios básicos'], highlight: false },
-  { name: 'Pro', price: '197', features: ['3 números WhatsApp', 'Produtos ilimitados', '10 operadores', 'Relatórios avançados', 'Suporte prioritário'], highlight: true },
-  { name: 'Enterprise', price: '497', features: ['Números ilimitados', 'Multi-loja', 'API completa', 'Suporte dedicado', 'SLA garantido'], highlight: false },
+const defaultPlans = [
+  { name: 'Básico', price: '97', features: ['1 número WhatsApp', 'Até 500 produtos', '2 operadores', 'Relatórios básicos'], is_highlighted: false, slug: 'basico' },
+  { name: 'Pro', price: '197', features: ['3 números WhatsApp', 'Produtos ilimitados', '10 operadores', 'Relatórios avançados', 'Suporte prioritário'], is_highlighted: true, slug: 'pro' },
+  { name: 'Enterprise', price: '497', features: ['Números ilimitados', 'Multi-loja', 'API completa', 'Suporte dedicado', 'SLA garantido'], is_highlighted: false, slug: 'enterprise' },
 ];
+
+const planStyles: Record<string, { card: string; badge: string; button: string; icon: string }> = {
+  basico: {
+    card: 'border-slate-800 bg-slate-900/40 hover:border-slate-700',
+    badge: 'bg-slate-700 text-slate-200',
+    button: 'bg-slate-800 text-slate-200 hover:bg-slate-700',
+    icon: 'text-slate-400',
+  },
+  pro: {
+    card: 'border-primary/50 bg-primary/10 hover:border-primary relative shadow-[0_0_30px_-10px_rgba(34,197,94,0.3)]',
+    badge: 'bg-primary text-primary-foreground',
+    button: 'bg-primary text-primary-foreground hover:bg-primary/90',
+    icon: 'text-primary',
+  },
+  enterprise: {
+    card: 'border-indigo-500/40 bg-indigo-500/10 hover:border-indigo-400 relative',
+    badge: 'bg-indigo-500 text-white',
+    button: 'bg-indigo-500 text-white hover:bg-indigo-400',
+    icon: 'text-indigo-400',
+  }
+};
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -47,6 +70,9 @@ const fadeUp = {
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const { data: serverPlans } = useGetPlans();
+
+  const displayPlans = serverPlans && serverPlans.length > 0 ? serverPlans : defaultPlans;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -271,7 +297,7 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section id="como-funciona" className="py-24 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-primary/[0.02] -skew-y-3 transform origin-right" />
+        <div className="absolute inset-0 bg-orange-500/[0.02] -skew-y-3 transform origin-right" />
 
         <div className="w-[80vw] md:max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
@@ -292,11 +318,11 @@ export default function LandingPage() {
                 variants={fadeUp}
                 className="flex-1 flex flex-col items-center text-center relative z-10"
               >
-                <div className="h-24 w-24 rounded-3xl bg-card border border-border shadow-sm flex items-center justify-center mb-6 group hover:border-primary/50 hover:shadow-primary/10 transition-all duration-300">
-                  <div className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-sm shadow-lg">
+                <div className="h-24 w-24 rounded-3xl bg-card border border-border shadow-sm flex items-center justify-center mb-6 group hover:border-orange-500/50 hover:shadow-orange-500/10 transition-all duration-300">
+                  <div className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center text-sm shadow-lg">
                     {i + 1}
                   </div>
-                  <step.icon className="h-10 w-10 text-primary group-hover:scale-110 transition-transform duration-300" />
+                  <step.icon className="h-10 w-10 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <h3 className="text-sm font-bold text-foreground max-w-[150px] leading-tight">
                   {step.title}
@@ -306,7 +332,7 @@ export default function LandingPage() {
           </div>
 
           {/* Mobile Stepper */}
-          <div className="md:hidden space-y-12 relative before:absolute before:left-[23px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gradient-to-b before:from-primary/50 before:via-primary/20 before:to-transparent">
+          <div className="md:hidden space-y-12 relative before:absolute before:left-[23px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gradient-to-b before:from-orange-500/50 before:via-orange-500/20 before:to-transparent">
             {steps.map((step, i) => (
               <motion.div
                 key={step.title}
@@ -319,9 +345,9 @@ export default function LandingPage() {
               >
                 <div className="relative z-10">
                   <div className="h-12 w-12 rounded-2xl bg-card border border-border flex items-center justify-center shadow-sm">
-                    <step.icon className="h-6 w-6 text-primary" />
+                    <step.icon className="h-6 w-6 text-orange-500" />
                   </div>
-                  <div className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-[10px] shadow-md">
+                  <div className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center text-[10px] shadow-md">
                     {i + 1}
                   </div>
                 </div>
@@ -351,49 +377,46 @@ export default function LandingPage() {
             <p className="text-muted-foreground">Comece grátis por 14 dias. Sem cartão de crédito.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {plans.map((plan, i) => (
-              <motion.div
-                key={plan.name}
-                custom={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-                className={`rounded-2xl border p-6 transition-all hover:-translate-y-1 ${plan.highlight
-                  ? 'border-primary bg-primary/5 relative'
-                  : 'border-border bg-card'
-                  }`}
-              >
-                {plan.highlight && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">
-                      <Star className="h-3 w-3" /> Mais popular
-                    </span>
+            {displayPlans.map((plan, i) => {
+              const style = planStyles[plan.slug] || planStyles.basico;
+              return (
+                <motion.div
+                  key={plan.name}
+                  custom={i}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  variants={fadeUp}
+                  className={`rounded-2xl border p-6 transition-all hover:-translate-y-1 ${style.card}`}
+                >
+                  {plan.is_highlighted && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full shadow-lg ${style.badge}`}>
+                        <Star className="h-3 w-3" /> Mais popular
+                      </span>
+                    </div>
+                  )}
+                  <h3 className="font-display font-bold text-lg text-foreground mb-1">{plan.name}</h3>
+                  <div className="mb-4">
+                    <span className="text-3xl font-display font-bold text-foreground">R${plan.price}</span>
+                    <span className="text-muted-foreground text-sm">/mês</span>
                   </div>
-                )}
-                <h3 className="font-display font-bold text-lg text-foreground mb-1">{plan.name}</h3>
-                <div className="mb-4">
-                  <span className="text-3xl font-display font-bold text-foreground">R${plan.price}</span>
-                  <span className="text-muted-foreground text-sm">/mês</span>
-                </div>
-                <ul className="space-y-2 mb-6">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/login">
-                  <Button className={`w-full rounded-xl font-bold ${plan.highlight
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                    : 'bg-muted text-foreground hover:bg-muted/80'
-                    }`}>
-                    Começar grátis
-                  </Button>
-                </Link>
-              </motion.div>
-            ))}
+                  <ul className="space-y-2 mb-6">
+                    {plan.features.map(f => (
+                      <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Check className={`h-4 w-4 flex-shrink-0 ${style.icon}`} />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/login">
+                    <Button className={`w-full rounded-xl font-bold ${style.button}`}>
+                      Começar grátis
+                    </Button>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>

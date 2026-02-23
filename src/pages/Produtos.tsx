@@ -342,17 +342,17 @@ export default function Produtos() {
                     </div>
                   </div>
 
-                  <div className="mt-auto space-y-4 pt-4">
-                    <Separator className="bg-border/50" />
-                    <div className="flex items-center justify-between">
+                  <div className="mt-auto space-y-3 pt-3">
+                    <Separator className="bg-border/30" />
+                    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Preço Unitário</span>
-                        <span className="text-xl font-display font-extrabold text-foreground">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Preço Unitário</span>
+                        <span className="text-lg font-display font-bold text-foreground leading-none">
                           R$ {parseFloat(p.price?.toString() || '0').toFixed(2).replace('.', ',')}
                         </span>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Estoque Disponível</span>
+                      <div className="flex flex-col sm:items-end gap-1.5 flex-1 max-w-[140px]">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Estoque</span>
                         <EstoqueIndicator atual={p.stock} minimo={p.stock_min} />
                       </div>
                     </div>

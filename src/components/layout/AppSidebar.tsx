@@ -1,7 +1,7 @@
 import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, Package, Warehouse, Users,
-  UserCog, Settings, LogOut, Menu, X, Store, CreditCard, Key
+  UserCog, Settings, LogOut, Menu, X, Store, CreditCard, Key, HelpCircle
 } from 'lucide-react';
 import { useState } from 'react';
 import { authService } from '@/services/auth.service';
@@ -113,6 +113,18 @@ export function AppSidebar() {
             </RouterNavLink>
           );
         })}
+
+        {/* Tutorial Button */}
+        <button
+          onClick={() => {
+            localStorage.removeItem('dashboard_tutorial_seen');
+            window.location.reload(); // Simple way to re-trigger since it uses local state
+          }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-muted mt-2"
+        >
+          <HelpCircle className="h-4.5 w-4.5 shrink-0" />
+          Abrir Tutorial
+        </button>
       </nav>
 
       {/* User + Logout */}

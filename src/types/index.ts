@@ -9,6 +9,7 @@ export interface Produto {
   stock: number;
   estoque?: number; // Compatibility
   stock_min: number;
+  min_stock?: number; // Backend alignment
   estoque_min?: number; // Compatibility
   category?: string | null;
   categoria?: string; // Compatibility
@@ -124,3 +125,28 @@ export interface MovimentoEstoque {
 
 export type StatusPedido = 'REALIZADO' | 'PREPARANDO' | 'ENVIADO' | 'FINALIZADO' | 'CANCELADO';
 export type FormaPagamento = 'DINHEIRO' | 'PIX' | 'CARTAO_DEBITO' | 'CARTAO_CREDITO' | 'FIADO';
+
+export interface PlanLimits {
+  max_products: number;
+  max_operators: number;
+  max_whatsapp: number;
+  advanced_reports?: boolean;
+  api_access?: boolean;
+  multi_store?: boolean;
+  priority_support?: boolean;
+  dedicated_support?: boolean;
+  sla?: boolean;
+  [key: string]: any;
+}
+
+export interface SubscriptionPlan {
+  id: number;
+  name: string;
+  slug: 'basico' | 'pro' | 'enterprise';
+  price: number | string;
+  description: string;
+  is_active: boolean;
+  is_highlighted: boolean;
+  limits: PlanLimits;
+  features: string[];
+}
