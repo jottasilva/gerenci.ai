@@ -130,13 +130,8 @@ export default function LandingPage() {
                   <SheetHeader>
                     <SheetTitle className="text-left">
                       <img
-<<<<<<< HEAD
-                        src="https://i.imgur.com/qjT8M0X.png"
-                        alt="ZapPDV"
-=======
                         src="https://i.imgur.com/MLqNJHh.png"
                         alt="Gerenci.AI | Gestão na Palma da mão"
->>>>>>> 8588ec0916ffa4163af361440c2562245f77d52b
                         className="h-8 object-contain"
                       />
                     </SheetTitle>
