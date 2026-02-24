@@ -4,7 +4,8 @@ import { api } from '@/services/api';
 import {
   Plus, Search, MoreHorizontal, Check, Clock, Truck, XCircle,
   Package, ShoppingCart, Trash2, Minus, User, CreditCard, Banknote,
-  QrCode, AlertTriangle, History, UserCog, Warehouse, Filter, ShoppingBag, Loader2
+  QrCode, AlertTriangle, History, UserCog, Warehouse, Filter, ShoppingBag, Loader2, Calendar,
+  Mail, MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -490,10 +491,10 @@ export default function Pedidos() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border text-muted-foreground bg-muted/10">
-                          <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px]"># Pedido</th>
-                          <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px]">Cliente</th>
-                          <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px]">Total</th>
-                          <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px]">Status</th>
+                          <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px]">Identificação</th>
+                          <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px]">Cliente / Vendedor</th>
+                          <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px]">Valores / Entrega</th>
+                          <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px]">Status / Itens</th>
                           <th className="w-10 px-6"></th>
                         </tr>
                       </thead>
@@ -507,22 +508,53 @@ export default function Pedidos() {
                               setIsOrderDetailOpen(true);
                             }}
                           >
-                            <td className="py-4 px-6 font-mono text-xs text-muted-foreground">#{p.id}</td>
-                            <td className="py-4 px-6 font-bold text-foreground">
-                              {p.cliente_name || p.cliente_name_manual || 'Balcão'}
-                            </td>
-                            <td className="py-4 px-6 font-display font-extrabold text-foreground">R$ {parseFloat(p.total.toString()).toFixed(2).replace('.', ',')}</td>
                             <td className="py-4 px-6">
-                              <div className="flex items-center gap-2">
-                                {p.delivery_method === 'BALCAO' && <Warehouse className="h-3.5 w-3.5 text-muted-foreground" />}
-                                {p.delivery_method === 'ENTREGA' && <Truck className="h-3.5 w-3.5 text-primary" />}
-                                {p.delivery_method === 'RETIRADA' && <ShoppingBag className="h-3.5 w-3.5 text-warning" />}
-                                <span className="text-[10px] uppercase font-bold text-muted-foreground">{p.delivery_method || 'BALCAO'}</span>
+                              <div className="flex flex-col gap-1">
+                                <span className="font-mono text-xs text-muted-foreground font-bold">#{p.id}</span>
+                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground whitespace-nowrap">
+                                  <Calendar className="h-2.5 w-2.5" />
+                                  <span>{p.created_at ? new Date(p.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</span>
+                                </div>
                               </div>
                             </td>
-                            <td className="py-4 px-6"><StatusBadge status={p.status} /></td>
+                            <td className="py-4 px-6">
+                              <div className="flex flex-col gap-1">
+                                <span className="font-bold text-foreground truncate max-w-[150px]">
+                                  {p.cliente_name || p.cliente_name_manual || 'Balcão'}
+                                </span>
+                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                  <UserCog className="h-2.5 w-2.5" />
+                                  <span className="truncate max-w-[120px]">Vendedor: {p.operador_nome || 'Admin'}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex flex-col gap-1">
+                                <span className="font-display font-extrabold text-foreground whitespace-nowrap">
+                                  R$ {parseFloat(p.total.toString()).toFixed(2).replace('.', ',')}
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  {p.delivery_method === 'BALCAO' && <Warehouse className="h-3 w-3 text-muted-foreground" />}
+                                  {p.delivery_method === 'ENTREGA' && <Truck className="h-3 w-3 text-primary" />}
+                                  {p.delivery_method === 'RETIRADA' && <ShoppingBag className="h-3 w-3 text-warning" />}
+                                  <span className="text-[10px] uppercase font-bold text-muted-foreground">{p.delivery_method || 'BALCAO'}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex flex-col gap-1">
+                                <div className="flex justify-start">
+                                  <StatusBadge status={p.status} />
+                                </div>
+                                <span className="text-[10px] font-medium text-muted-foreground">
+                                  {p.items?.length || 0} {(p.items?.length || 0) === 1 ? 'item' : 'itens'}
+                                </span>
+                              </div>
+                            </td>
                             <td className="py-4 px-6 text-right">
-                              <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -552,21 +584,46 @@ export default function Pedidos() {
             </div>
           </DialogHeader>
           <ScrollArea className="flex-1 p-4 sm:p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               {filteredClientes.map(c => (
                 <button
                   key={c.id}
                   onClick={() => handleSelectCliente(c)}
-                  className="flex flex-col p-4 sm:p-5 rounded-2xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-left group"
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-left group"
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary transition-colors">
-                      <User className="h-5 w-5" />
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="h-12 w-12 rounded-2xl bg-muted flex-shrink-0 flex items-center justify-center text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+                      <User className="h-6 w-6" />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-foreground">{c.nome}</h4>
-                      <p className="text-xs text-muted-foreground">{c.whatsapp}</p>
+                    <div className="flex flex-col overflow-hidden">
+                      <h4 className="font-bold text-foreground truncate">{c.nome}</h4>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <div className="flex items-center gap-1 text-[10px] bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground font-bold">
+                          <QrCode className="h-2.5 w-2.5" />
+                          {c.whatsapp}
+                        </div>
+                        {c.email && (
+                          <div className="flex items-center gap-1 text-[10px] bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground truncate max-w-[120px]">
+                            <Mail className="h-2.5 w-2.5" />
+                            {c.email}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  </div>
+
+                  {c.endereco && (
+                    <div className="hidden lg:flex flex-1 items-start gap-2 text-[10px] text-muted-foreground italic border-l border-border pl-4 max-w-[200px]">
+                      <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-2">{c.endereco}</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col items-end sm:border-l border-border sm:pl-4 min-w-fit">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Compras</span>
+                    <span className="text-base font-display font-extrabold text-primary">
+                      R$ {parseFloat(c.total_compras?.toString() || '0').toFixed(2).replace('.', ',')}
+                    </span>
                   </div>
                 </button>
               ))}

@@ -11,6 +11,7 @@ import { PlanBadge } from '@/components/shared/PlanBadge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'GERENTE'] },
@@ -114,17 +115,27 @@ export function AppSidebar() {
           );
         })}
 
-        {/* Tutorial Button */}
-        <button
-          onClick={() => {
-            localStorage.removeItem('dashboard_tutorial_seen');
-            window.location.reload(); // Simple way to re-trigger since it uses local state
-          }}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-muted mt-2"
-        >
-          <HelpCircle className="h-4.5 w-4.5 shrink-0" />
-          Abrir Tutorial
-        </button>
+        {/* Tutorial Checkbox */}
+        <div className="px-3 py-2.5 mt-2 rounded-xl flex items-center justify-between group hover:bg-muted transition-all">
+          <div className="flex items-center gap-3">
+            <HelpCircle className="h-4.5 w-4.5 shrink-0 text-muted-foreground group-hover:text-foreground" />
+            <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground">
+              Abrir Tutorial
+            </span>
+          </div>
+          <Checkbox
+            checked={!localStorage.getItem('dashboard_tutorial_seen')}
+            onCheckedChange={(checked) => {
+              if (checked) {
+                localStorage.removeItem('dashboard_tutorial_seen');
+                window.location.reload();
+              } else {
+                localStorage.setItem('dashboard_tutorial_seen', 'true');
+                window.location.reload();
+              }
+            }}
+          />
+        </div>
       </nav>
 
       {/* User + Logout */}

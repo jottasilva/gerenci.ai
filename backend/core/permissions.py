@@ -24,7 +24,7 @@ PERMISSION_MAP = {
     
     # Gestão
     'relatorio.financeiro': ['ADMIN'],
-    'relatorio.vendas': ['ADMIN', 'GERENTE'],
+    'relatorio.vendas': ['ADMIN', 'GERENTE', 'VENDEDOR'],
     'usuario.gerenciar': ['ADMIN'],
     'config.atendente': ['ADMIN', 'GERENTE'],
     'config.global': ['ADMIN'],

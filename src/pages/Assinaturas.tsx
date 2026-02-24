@@ -72,6 +72,15 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -239,6 +248,8 @@ export default function Assinaturas() {
     const [activeTab, setActiveTab] = useState('subscription');
     const [subscribing, setSubscribing] = useState(false);
     const [activationKey, setActivationKey] = useState('');
+    const [keysPage, setKeysPage] = useState(1);
+    const keysPerPage = 5;
 
     // Mutations
     const deleteKeyMutation = useDeleteLicenseKey();
@@ -608,57 +619,110 @@ export default function Assinaturas() {
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : (
-                                                        keys.map((k) => (
-                                                            <TableRow key={k.id} className="border-border/30 hover:bg-muted/10 transition-colors group">
-                                                                <TableCell className="px-6 py-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", k.is_used ? "bg-muted text-muted-foreground" : "bg-orange-100 text-orange-600")}>
-                                                                            <Key className="h-4 w-4" />
+                                                        keys
+                                                            .slice((keysPage - 1) * keysPerPage, keysPage * keysPerPage)
+                                                            .map((k) => (
+                                                                <TableRow key={k.id} className="border-border/30 hover:bg-muted/10 transition-colors group">
+                                                                    <TableCell className="px-6 py-4">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", k.is_used ? "bg-muted text-muted-foreground" : "bg-orange-100 text-orange-600")}>
+                                                                                <Key className="h-4 w-4" />
+                                                                            </div>
+                                                                            <span className="font-mono font-bold text-sm tracking-widest">{k.key}</span>
                                                                         </div>
-                                                                        <span className="font-mono font-bold text-sm tracking-widest">{k.key}</span>
-                                                                    </div>
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    <Badge variant="outline" className="text-[10px] font-bold">{k.plan_name}</Badge>
-                                                                </TableCell>
-                                                                <TableCell className="text-center font-bold text-xs text-muted-foreground">
-                                                                    {k.duration_days} d
-                                                                </TableCell>
-                                                                <TableCell className="text-right pr-6">
-                                                                    <div className="flex items-center justify-end gap-2">
-                                                                        {k.is_used ? (
-                                                                            <Badge variant="outline" className="bg-muted/30 text-muted-foreground border-transparent px-2 py-0.5 font-bold uppercase text-[9px]">VINCULADA</Badge>
-                                                                        ) : (
-                                                                            <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-2 py-0.5 font-bold uppercase text-[9px]">DISPONÍVEL</Badge>
-                                                                        )}
-                                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
-                                                                                title="Clonar/Renovar"
-                                                                                onClick={() => handleRenewKey(k.id)}
-                                                                            >
-                                                                                <Copy className="h-3.5 w-3.5" />
-                                                                            </Button>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                                                                                title="Excluir"
-                                                                                onClick={() => handleDeleteKey(k.id)}
-                                                                            >
-                                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                                            </Button>
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        <Badge variant="outline" className="text-[10px] font-bold">{k.plan_name}</Badge>
+                                                                    </TableCell>
+                                                                    <TableCell className="text-center font-bold text-xs text-muted-foreground">
+                                                                        {k.duration_days} d
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right pr-6">
+                                                                        <div className="flex items-center justify-end gap-2">
+                                                                            {k.is_used ? (
+                                                                                <Badge variant="outline" className="bg-muted/30 text-muted-foreground border-transparent px-2 py-0.5 font-bold uppercase text-[9px]">VINCULADA</Badge>
+                                                                            ) : (
+                                                                                <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-2 py-0.5 font-bold uppercase text-[9px]">DISPONÍVEL</Badge>
+                                                                            )}
+                                                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+                                                                                    title="Clonar/Renovar"
+                                                                                    onClick={() => handleRenewKey(k.id)}
+                                                                                >
+                                                                                    <Copy className="h-3.5 w-3.5" />
+                                                                                </Button>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                                                                    title="Excluir"
+                                                                                    onClick={() => handleDeleteKey(k.id)}
+                                                                                >
+                                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                                </Button>
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))
                                                     )}
                                                 </TableBody>
                                             </Table>
                                         </div>
+
+                                        {keys.length > keysPerPage && (
+                                            <div className="py-4 border-t border-border/30 px-4">
+                                                <Pagination>
+                                                    <PaginationContent>
+                                                        <PaginationItem>
+                                                            <PaginationPrevious
+                                                                onClick={() => setKeysPage(p => Math.max(1, p - 1))}
+                                                                className={cn("cursor-pointer h-8 text-[10px] font-bold", keysPage === 1 && "pointer-events-none opacity-50")}
+                                                            />
+                                                        </PaginationItem>
+                                                        {Array.from({ length: Math.ceil(keys.length / keysPerPage) }).map((_, i) => {
+                                                            const pageNum = i + 1;
+                                                            // Show first, last, current, and pages around current
+                                                            if (
+                                                                pageNum === 1 ||
+                                                                pageNum === Math.ceil(keys.length / keysPerPage) ||
+                                                                Math.abs(pageNum - keysPage) <= 1
+                                                            ) {
+                                                                return (
+                                                                    <PaginationItem key={pageNum}>
+                                                                        <PaginationLink
+                                                                            onClick={() => setKeysPage(pageNum)}
+                                                                            isActive={keysPage === pageNum}
+                                                                            className="cursor-pointer h-8 w-8 text-[10px] font-bold"
+                                                                        >
+                                                                            {pageNum}
+                                                                        </PaginationLink>
+                                                                    </PaginationItem>
+                                                                );
+                                                            }
+                                                            // Show ellipses
+                                                            if (pageNum === 2 || pageNum === Math.ceil(keys.length / keysPerPage) - 1) {
+                                                                return (
+                                                                    <PaginationItem key={pageNum}>
+                                                                        <PaginationEllipsis className="h-8 w-8" />
+                                                                    </PaginationItem>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })}
+                                                        <PaginationItem>
+                                                            <PaginationNext
+                                                                onClick={() => setKeysPage(p => Math.min(Math.ceil(keys.length / keysPerPage), p + 1))}
+                                                                className={cn("cursor-pointer h-8 text-[10px] font-bold", keysPage === Math.ceil(keys.length / keysPerPage) && "pointer-events-none opacity-50")}
+                                                            />
+                                                        </PaginationItem>
+                                                    </PaginationContent>
+                                                </Pagination>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </div>
