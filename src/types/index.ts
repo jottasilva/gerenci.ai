@@ -150,3 +150,14 @@ export interface SubscriptionPlan {
   limits: PlanLimits;
   features: string[];
 }
+
+export interface Fornecedor {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  cnpj?: string;
+  address?: string;
+  is_active: boolean;
+  created_at?: string;
+}

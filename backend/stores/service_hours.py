@@ -75,8 +75,13 @@ def is_within_service_hours(store_id, user=None):
     """
     Validates if the current time is within the allowed service hours.
     Checks both Store-level and User-level constraints.
+    Admins and superusers always bypass service hour restrictions.
     """
     try:
+        # Admin/Superuser bypass — full control at any time
+        if user and (getattr(user, 'is_superuser', False) or getattr(user, 'role', None) == 'ADMIN'):
+            return True, "Admin: acesso sem restrição de horário."
+
         store_config = get_store_service_hours(store_id)
         now = timezone.localtime(timezone.now())
         current_time = now.time()

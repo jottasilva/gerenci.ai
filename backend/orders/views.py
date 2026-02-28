@@ -6,11 +6,49 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from stores.views import MultiTenantViewSet
-from .models import Order, OrderItem
-from .serializers import OrderSerializer, OrderItemSerializer
+from .models import Order, OrderItem, DiscountCoupon
+from .serializers import OrderSerializer, OrderItemSerializer, DiscountCouponSerializer
 from core.permissions import HasRolePermission, check_permission
 from core.audit import log_critical_action
 from stores.service_hours import is_within_service_hours
+
+
+class DiscountCouponViewSet(MultiTenantViewSet):
+    queryset = DiscountCoupon.objects.all()
+    serializer_class = DiscountCouponSerializer
+    permission_classes = [HasRolePermission]
+    required_permissions = {
+        'list': 'pdv.vender',
+        'retrieve': 'pdv.vender',
+        'create': 'produto.gerenciar',
+        'update': 'produto.gerenciar',
+        'partial_update': 'produto.gerenciar',
+        'destroy': 'produto.gerenciar',
+        'validate': 'pdv.vender',
+    }
+
+    @action(detail=False, methods=['post'])
+    def validate(self, request):
+        """Validate a coupon code and return its details if valid."""
+        code = request.data.get('code', '').strip().upper()
+        if not code:
+            return Response({'valid': False, 'error': 'Código não informado.'}, status=400)
+
+        store = self._get_effective_store()
+        try:
+            coupon = DiscountCoupon.objects.get(store=store, code=code)
+        except DiscountCoupon.DoesNotExist:
+            return Response({'valid': False, 'error': 'Cupom não encontrado.'}, status=404)
+
+        if not coupon.is_valid:
+            return Response({'valid': False, 'error': 'Cupom expirado ou esgotado.'}, status=400)
+
+        return Response({
+            'valid': True,
+            'id': coupon.id,
+            'code': coupon.code,
+            'percentage': float(coupon.percentage),
+        })
 
 
 class OrderViewSet(MultiTenantViewSet):
@@ -174,43 +212,53 @@ class OrderViewSet(MultiTenantViewSet):
         """
         GET /api/orders/stats/
         Returns aggregated dashboard statistics for the selected store.
+        All data is filtered according to the selected period.
         """
         store = self._get_effective_store()
         if not store:
             return Response({'error': 'Nenhuma loja vinculada.'}, status=400)
 
         # Base filter: current store, non-cancelled orders
-        orders_query = Order.objects.filter(store=store).exclude(status='CANCELADO')
-        
-        # 1. KPIs
-        stats_kpi = orders_query.aggregate(
-            total_revenue=Sum('total'),
-            avg_ticket=Avg('total'),
-            total_orders=Count('id')
-        )
-        
-        from customers.models import Customer
-        total_customers = Customer.objects.filter(store=store).count()
+        base_query = Order.objects.filter(store=store).exclude(status='CANCELADO')
 
-        # 2. Sequential Data based on Period
+        # Determine period and date range
         period = request.query_params.get('period', 'diario')
         now = timezone.localtime(timezone.now())
         today_date = now.date()
 
         if period == 'mensal':
-            start_date = (today_date - timedelta(days=180)).replace(day=1)
-            sales_qs = orders_query.filter(created_at__date__gte=start_date) \
+            period_start = today_date.replace(day=1)  # First day of current month
+        elif period == 'semanal':
+            period_start = today_date - timedelta(days=6)  # Last 7 days
+        else:  # diario
+            period_start = today_date  # Today only
+
+        # Period-filtered query for KPIs, category, top products
+        period_query = base_query.filter(created_at__date__gte=period_start)
+
+        # 1. KPIs (filtered by period)
+        stats_kpi = period_query.aggregate(
+            total_revenue=Sum('total'),
+            avg_ticket=Avg('total'),
+            total_orders=Count('id')
+        )
+
+        from customers.models import Customer
+        total_customers = Customer.objects.filter(store=store).count()
+
+        # 2. Sequential Data based on Period (for chart)
+        if period == 'mensal':
+            chart_start = (today_date - timedelta(days=180)).replace(day=1)
+            sales_qs = base_query.filter(created_at__date__gte=chart_start) \
                 .annotate(date=TruncMonth('created_at')) \
                 .values('date') \
                 .annotate(vendas=Sum('total')) \
                 .order_by('date')
-            
+
             daily_sales_data = []
             months_br = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
             for i in range(6):
-                # Calculate the 6 most recent months
                 d = (today_date - timedelta(days=30*i)).replace(day=1)
-                # Ensure we compare dates safely (TruncMonth might return datetime in some DBs)
                 res = next((item for item in sales_qs if (item['date'].date() if hasattr(item['date'], 'date') else item['date']) == d), None)
                 daily_sales_data.insert(0, {
                     'dia': f"{months_br[d.month-1]}/{str(d.year)[2:]}",
@@ -218,47 +266,49 @@ class OrderViewSet(MultiTenantViewSet):
                 })
 
         elif period == 'semanal':
-            start_date = today_date - timedelta(days=28)
-            sales_qs = orders_query.filter(created_at__date__gte=start_date) \
+            chart_start = today_date - timedelta(days=28)
+            sales_qs = base_query.filter(created_at__date__gte=chart_start) \
                 .annotate(date=TruncWeek('created_at')) \
                 .values('date') \
                 .annotate(vendas=Sum('total')) \
                 .order_by('date')
-            
+
             daily_sales_data = []
             for i in range(4):
                 d = today_date - timedelta(days=7*i)
-                # Get start of week
                 d_start = d - timedelta(days=d.weekday())
                 res = next((item for item in sales_qs if (item['date'].date() if hasattr(item['date'], 'date') else item['date']) == d_start), None)
                 daily_sales_data.insert(0, {
                     'dia': f"Sem {d_start.day}/{d_start.month}",
                     'vendas': float(res['vendas']) if res else 0.0
                 })
-        else: # diario (7 days)
-            start_date = today_date - timedelta(days=6)
-            sales_qs = orders_query.filter(created_at__date__gte=start_date) \
+        else:  # diario (7 days)
+            chart_start = today_date - timedelta(days=6)
+            sales_qs = base_query.filter(created_at__date__gte=chart_start) \
                 .annotate(date=TruncDate('created_at')) \
                 .values('date') \
                 .annotate(vendas=Sum('total')) \
                 .order_by('date')
-            
+
             weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
             daily_sales_data = []
             for i in range(7):
-                d = start_date + timedelta(days=i)
+                d = chart_start + timedelta(days=i)
                 res = next((item for item in sales_qs if (item['date'].date() if hasattr(item['date'], 'date') else item['date']) == d), None)
                 daily_sales_data.append({
                     'dia': weekdays[d.weekday()],
                     'vendas': float(res['vendas']) if res else 0.0
                 })
 
-        # 3. Sales by Category
-        category_sales = OrderItem.objects.filter(order__store=store).exclude(order__status='CANCELADO') \
+        # 3. Sales by Category (filtered by period)
+        category_sales = OrderItem.objects.filter(
+            order__store=store,
+            order__created_at__date__gte=period_start
+        ).exclude(order__status='CANCELADO') \
             .values(cat_name=F('product__category__name')) \
             .annotate(value=Sum('subtotal')) \
             .order_by('-value')
-        
+
         category_data = []
         for item in category_sales:
             category_data.append({
@@ -266,8 +316,11 @@ class OrderViewSet(MultiTenantViewSet):
                 'value': float(item['value'])
             })
 
-        # 4. Top Products
-        top_products = OrderItem.objects.filter(order__store=store).exclude(order__status='CANCELADO') \
+        # 4. Top Products (filtered by period)
+        top_products = OrderItem.objects.filter(
+            order__store=store,
+            order__created_at__date__gte=period_start
+        ).exclude(order__status='CANCELADO') \
             .values('product', name=F('product__name')) \
             .annotate(total=Sum('subtotal')) \
             .order_by('-total')[:5]
@@ -280,25 +333,33 @@ class OrderViewSet(MultiTenantViewSet):
                 'total': float(item['total'])
             })
 
-        # 5. Today's KPIs
-        today_orders = orders_query.filter(created_at__date=today_date)
-        today_kpi = today_orders.aggregate(
+        # 5. Period KPIs (main cards)
+        period_kpi = period_query.aggregate(
             revenue=Sum('total'),
             count=Count('id'),
             avg=Avg('total')
         )
 
+        # Period label for frontend
+        period_labels = {
+            'diario': 'Hoje',
+            'semanal': 'Esta Semana',
+            'mensal': 'Este Mês'
+        }
+
         return Response({
+            'period': period,
+            'period_label': period_labels.get(period, 'Hoje'),
             'kpis': {
                 'total_revenue': float(stats_kpi['total_revenue'] or 0.0),
                 'avg_ticket': float(stats_kpi['avg_ticket'] or 0.0),
                 'total_orders': stats_kpi['total_orders'],
                 'total_customers': total_customers
             },
-            'today': {
-                'revenue': float(today_kpi['revenue'] or 0.0),
-                'orders': today_kpi['count'],
-                'avg_ticket': float(today_kpi['avg'] or 0.0)
+            'period_kpis': {
+                'revenue': float(period_kpi['revenue'] or 0.0),
+                'orders': period_kpi['count'],
+                'avg_ticket': float(period_kpi['avg'] or 0.0)
             },
             'daily_sales': daily_sales_data,
             'category_sales': category_data,

@@ -19,6 +19,7 @@ import Assinaturas from "./pages/Assinaturas";
 import AdminKeys from "./pages/AdminKeys";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
+import Fornecedores from "./pages/Fornecedores";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,6 +52,7 @@ const App = () => (
                 <Route path="/operadores" element={<Operadores />} />
                 <Route path="/configuracoes" element={<Configuracoes />} />
                 <Route path="/assinaturas" element={<Assinaturas />} />
+                <Route path="/fornecedores" element={<Fornecedores />} />
               </Route>
 
               {/* Only Admin */}

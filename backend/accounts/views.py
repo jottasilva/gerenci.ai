@@ -1,12 +1,81 @@
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from .models import User
 from .serializers import UserSerializer, RegisterSerializer
 from stores.models import Store
 
 from stores.views import MultiTenantViewSet
 from core.permissions import HasRolePermission
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """Override token view to detect users that need password setup."""
+    
+    def post(self, request, *args, **kwargs):
+        whatsapp = request.data.get('whatsapp', '')
+        
+        # Check if user exists and needs password setup
+        try:
+            user = User.objects.get(whatsapp=whatsapp)
+            if user.needs_password_setup or not user.has_usable_password():
+                return Response({
+                    'needs_password_setup': True,
+                    'whatsapp': whatsapp,
+                    'message': 'Este operador precisa criar uma senha de acesso.'
+                }, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            pass  # Let the parent handle the 401
+        
+        return super().post(request, *args, **kwargs)
+
+
+class SetupPasswordView(APIView):
+    """Allow first-time password setup for operators."""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        whatsapp = request.data.get('whatsapp', '')
+        new_password = request.data.get('new_password', '')
+        confirm_password = request.data.get('confirm_password', '')
+        
+        if not whatsapp or not new_password:
+            return Response(
+                {'detail': 'WhatsApp e nova senha são obrigatórios.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if new_password != confirm_password:
+            return Response(
+                {'detail': 'As senhas não coincidem.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = User.objects.get(whatsapp=whatsapp)
+        except User.DoesNotExist:
+            return Response(
+                {'detail': 'Operador não encontrado.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if not user.needs_password_setup and user.has_usable_password():
+            return Response(
+                {'detail': 'Este operador já possui senha configurada.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user.set_password(new_password)
+        user.needs_password_setup = False
+        user.save()
+        
+        return Response({
+            'detail': 'Senha criada com sucesso! Faça login.',
+            'success': True
+        })
 
 class UserViewSet(MultiTenantViewSet):
     queryset = User.objects.all()

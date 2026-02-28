@@ -4,12 +4,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
 export const api = axios.create({
     baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
 });
 
-// Attach JWT token and X-Store-ID header on every request
+// Attach JWT token, X-Store-ID header, and dynamic Content-Type on every request
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -20,6 +17,13 @@ api.interceptors.request.use((config) => {
     const selectedStoreId = localStorage.getItem('selected_store_id');
     if (selectedStoreId) {
         config.headers['X-Store-ID'] = selectedStoreId;
+    }
+
+    // Dynamic Content-Type: let browser handle FormData (multipart), default to JSON
+    if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+    } else if (!config.headers['Content-Type']) {
+        config.headers['Content-Type'] = 'application/json';
     }
 
     return config;

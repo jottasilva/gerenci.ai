@@ -6,47 +6,61 @@ import { Operador } from '@/types';
 export const operatorService = {
     getOperators: async (): Promise<Operador[]> => {
         const response = await api.get('users/');
-        // Map backend User fields to frontend Operador fields if necessary
-        // Backend: { id, first_name, last_name, whatsapp, role, ativo }
-        // Frontend Operador: { id, nome, whatsapp, role, ativo }
         return response.data.map((u: any) => ({
             id: u.id.toString(),
             nome: `${u.first_name} ${u.last_name}`.trim(),
+            login_name: u.login_name || '',
             whatsapp: u.whatsapp,
             role: u.role,
-            ativo: u.ativo
+            ativo: u.ativo,
+            needs_password_setup: u.needs_password_setup || false
         }));
     },
 
-    createOperator: async (operator: Omit<Operador, 'id'>): Promise<Operador> => {
-        // Map frontend -> backend
-        const names = operator.nome.split(' ');
+    createOperator: async (operator: any): Promise<Operador> => {
+        const names = (operator.nome || '').split(' ');
         const first_name = names[0];
         const last_name = names.slice(1).join(' ');
 
-        const response = await api.post('users/', {
+        const payload: any = {
             first_name,
             last_name,
+            login_name: operator.login_name || null,
             whatsapp: operator.whatsapp,
             role: operator.role,
-            ativo: operator.ativo,
-            password: '123' // Default password/PIN for new operators
-        });
+            ativo: operator.ativo ?? true,
+        };
+        // Only send password if provided — blank means setup on first login
+        if (operator.password) {
+            payload.password = operator.password;
+        } else {
+            payload.password = '';
+        }
+        if (operator.horario_inicio) payload.horario_inicio = operator.horario_inicio;
+        if (operator.horario_fim) payload.horario_fim = operator.horario_fim;
+
+        const response = await api.post('users/', payload);
         return response.data;
     },
 
-    updateOperator: async (operator: Operador): Promise<Operador> => {
-        const names = operator.nome.split(' ');
+    updateOperator: async (operator: any): Promise<Operador> => {
+        const names = (operator.nome || '').split(' ');
         const first_name = names[0];
         const last_name = names.slice(1).join(' ');
 
-        const response = await api.patch(`users/${operator.id}/`, {
+        const payload: any = {
             first_name,
             last_name,
+            login_name: operator.login_name || null,
             whatsapp: operator.whatsapp,
             role: operator.role,
             ativo: operator.ativo
-        });
+        };
+        if (operator.password) payload.password = operator.password;
+        if (operator.horario_inicio) payload.horario_inicio = operator.horario_inicio;
+        if (operator.horario_fim) payload.horario_fim = operator.horario_fim;
+
+        const response = await api.patch(`users/${operator.id}/`, payload);
         return response.data;
     },
 

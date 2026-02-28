@@ -11,8 +11,16 @@ export const authService = {
     login: async (whatsapp: string, pin: string): Promise<AuthResponse> => {
         const response = await api.post('auth/token/', {
             whatsapp,
-            password: pin // Using PIN as password in this POC context
+            password: pin
         });
+
+        // Check if user needs to set up password
+        if (response.data.needs_password_setup) {
+            const error: any = new Error('needs_password_setup');
+            error.needs_password_setup = true;
+            error.whatsapp = response.data.whatsapp;
+            throw error;
+        }
 
         const { access, refresh } = response.data;
 
@@ -27,6 +35,15 @@ export const authService = {
         localStorage.setItem('user', JSON.stringify(user));
 
         return { user, access, refresh };
+    },
+
+    setupPassword: async (whatsapp: string, newPassword: string, confirmPassword: string): Promise<any> => {
+        const response = await api.post('auth/setup-password/', {
+            whatsapp,
+            new_password: newPassword,
+            confirm_password: confirmPassword
+        });
+        return response.data;
     },
 
     register: async (data: any) => {

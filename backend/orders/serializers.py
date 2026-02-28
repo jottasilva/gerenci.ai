@@ -1,5 +1,18 @@
 from rest_framework import serializers
-from .models import Order, OrderItem
+from .models import Order, OrderItem, DiscountCoupon
+
+
+class DiscountCouponSerializer(serializers.ModelSerializer):
+    is_valid_now = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DiscountCoupon
+        fields = ('id', 'code', 'percentage', 'is_active', 'max_uses', 'times_used',
+                  'valid_from', 'valid_until', 'created_at', 'is_valid_now')
+        read_only_fields = ('store', 'times_used', 'created_at')
+
+    def get_is_valid_now(self, obj):
+        return obj.is_valid
 
 
 class OrderItemSerializer(serializers.ModelSerializer):

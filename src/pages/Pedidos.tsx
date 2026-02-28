@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import {
   Plus, Search, MoreHorizontal, Check, Clock, Truck, XCircle,
   Package, ShoppingCart, Trash2, Minus, User, CreditCard, Banknote,
   QrCode, AlertTriangle, History, UserCog, Warehouse, Filter, ShoppingBag, Loader2, Calendar,
-  Mail, MapPin
+  Mail, MapPin, Download, Share2, ChevronLeft, ChevronRight, Receipt, Tag
 } from 'lucide-react';
+import * as htmlToImage from 'html-to-image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -66,6 +67,8 @@ export default function Pedidos() {
   const [cart, setCart] = useState<ItemPedido[]>([]);
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('TODOS');
+  const [pdvPage, setPdvPage] = useState(1);
+  const PDV_PER_PAGE = 12; // 3 rows × 4 cols
   const [statusFilter, setStatusFilter] = useState<StatusPedido | 'TODOS'>('TODOS');
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -82,6 +85,8 @@ export default function Pedidos() {
   const [isClientSearchOpen, setIsClientSearchOpen] = useState(false);
   const [isClientCreateOpen, setIsClientCreateOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
+  const [lastCreatedOrder, setLastCreatedOrder] = useState<any>(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   const [newClient, setNewClient] = useState({
     nome: '',
@@ -95,13 +100,21 @@ export default function Pedidos() {
     (c.whatsapp ?? '').includes(clientSearchQuery)
   );
 
-  const categorias = ['TODOS', ...new Set(products.map(p => p.categoria))];
+  // Only categories that have at least 1 active product
+  const activeProducts = products.filter(p => p.ativo);
+  const categorias = ['TODOS', ...new Set(activeProducts.map(p => p.categoria).filter(Boolean))];
 
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = activeProducts.filter(p => {
     const matchSearch = (p.nome ?? '').toLowerCase().includes(search.toLowerCase()) || (p.sku ?? '').toLowerCase().includes(search.toLowerCase());
     const matchCat = catFilter === 'TODOS' || p.categoria === catFilter;
-    return matchSearch && matchCat && p.ativo;
+    return matchSearch && matchCat;
   });
+
+  const pdvTotalPages = Math.max(1, Math.ceil(filteredProducts.length / PDV_PER_PAGE));
+  const paginatedPdvProducts = filteredProducts.slice((pdvPage - 1) * PDV_PER_PAGE, pdvPage * PDV_PER_PAGE);
+
+  const handlePdvCatFilter = (cat: string) => { setCatFilter(cat); setPdvPage(1); };
+  const handlePdvSearch = (v: string) => { setSearch(v); setPdvPage(1); };
 
   const filteredOrders = orders.filter(p => {
     const custName = p.cliente_name || p.cliente_name_manual || 'Desconhecido';
@@ -197,7 +210,15 @@ export default function Pedidos() {
         }))
       };
 
-      await createOrderMutation.mutateAsync(orderData);
+      const createdOrder = await createOrderMutation.mutateAsync(orderData);
+
+      // Save created order for receipt
+      setLastCreatedOrder({
+        ...orderData,
+        id: createdOrder?.id || Date.now(),
+        created_at: new Date().toISOString(),
+        operator_name: 'Admin'
+      });
 
       setCart([]);
       setClienteManual('Balcão');
@@ -208,6 +229,9 @@ export default function Pedidos() {
       setDeliveryAddress('');
       setIsPaymentOpen(false);
       setIsCartOpen(false);
+
+      // Show receipt dialog
+      setIsReceiptOpen(true);
     } catch (err: any) {
       console.error("Order creation failed:", err);
       const errorMsg = err.response?.data?.error || err.response?.data?.detail || "Erro ao realizar pedido. Verifique os dados.";
@@ -396,25 +420,27 @@ export default function Pedidos() {
           <TabsContent value="vender" className="flex-1 h-full m-0 flex flex-col lg:flex-row gap-6">
             <div className="flex-1 flex flex-col gap-4 overflow-hidden">
               <Card className="flex-shrink-0 border-border bg-card shadow-sm rounded-2xl overflow-hidden">
-                <CardContent className="p-4 flex flex-col sm:flex-row gap-3">
-                  <div className="relative flex-1">
+                <CardContent className="p-4 space-y-3">
+                  {/* Search ABOVE categories */}
+                  <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Pesquisar produto ou código..."
                       value={search}
-                      onChange={e => setSearch(e.target.value)}
+                      onChange={e => handlePdvSearch(e.target.value)}
                       className="pl-9 bg-muted/30 border-none transition-all focus-visible:ring-primary/20 rounded-xl"
                     />
                   </div>
-                  <ScrollArea className="flex-shrink-0 w-full sm:w-auto">
-                    <div className="flex gap-2 pb-2 sm:pb-0">
+                  {/* Categories BELOW search — no empty categories */}
+                  <ScrollArea className="w-full">
+                    <div className="flex gap-2 pb-1">
                       {categorias.map(cat => (
                         <Button
                           key={cat}
                           variant={catFilter === cat ? 'default' : 'outline'}
                           size="sm"
-                          onClick={() => setCatFilter(cat)}
-                          className="rounded-xl px-4 text-xs font-bold uppercase tracking-wider"
+                          onClick={() => handlePdvCatFilter(cat)}
+                          className="rounded-xl px-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap"
                         >
                           {cat === 'TODOS' ? 'Todos' : cat}
                         </Button>
@@ -425,8 +451,8 @@ export default function Pedidos() {
               </Card>
 
               <ScrollArea className="flex-1 rounded-2xl">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-20 lg:pb-4">
-                  {filteredProducts.map(product => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
+                  {paginatedPdvProducts.map(product => (
                     <button
                       key={product.id}
                       onClick={() => addToCart(product)}
@@ -457,6 +483,18 @@ export default function Pedidos() {
                     </button>
                   ))}
                 </div>
+                {/* Pagination */}
+                {pdvTotalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 pt-3 pb-2 border-t border-border/50">
+                    <Button variant="ghost" size="sm" disabled={pdvPage === 1} onClick={() => setPdvPage(p => p - 1)} className="h-8 rounded-lg">
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-xs font-bold text-muted-foreground">{pdvPage} / {pdvTotalPages}</span>
+                    <Button variant="ghost" size="sm" disabled={pdvPage === pdvTotalPages} onClick={() => setPdvPage(p => p + 1)} className="h-8 rounded-lg">
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </ScrollArea>
             </div>
 
@@ -783,89 +821,343 @@ export default function Pedidos() {
       </Dialog>
 
       <Dialog open={isOrderDetailOpen} onOpenChange={setIsOrderDetailOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-xl rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-muted/30 border-b border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-xl font-display font-bold">Detalhes do Pedido #{selectedOrder?.id}</DialogTitle>
-                <DialogDescription>
-                  {selectedOrder?.created_at && new Date(selectedOrder.created_at).toLocaleString()}
-                </DialogDescription>
-              </div>
-              <StatusBadge status={selectedOrder?.status || 'REALIZADO'} />
-            </div>
+        <DialogContent className="w-[95vw] sm:max-w-[420px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Detalhes do Pedido #{selectedOrder?.id}</DialogTitle>
+            <DialogDescription>Recibo do pedido.</DialogDescription>
           </DialogHeader>
-          <div className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Cliente:</span>
-                <span className="font-bold">{selectedOrder?.cliente_name || selectedOrder?.cliente_name_manual || 'Balcão'}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Forma de Pagamento:</span>
-                <span className="font-bold">{selectedOrder?.payment_method || selectedOrder?.forma_pagto}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Operador:</span>
-                <span className="font-bold">{selectedOrder?.operador_nome || selectedOrder?.operator_name || 'Admin'}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Tipo de Entrega:</span>
-                <div className="flex items-center gap-2 font-bold">
-                  {selectedOrder?.delivery_method === 'BALCAO' && <Warehouse className="h-4 w-4" />}
-                  {selectedOrder?.delivery_method === 'ENTREGA' && <Truck className="h-4 w-4" />}
-                  {selectedOrder?.delivery_method === 'RETIRADA' && <ShoppingBag className="h-4 w-4" />}
-                  {selectedOrder?.delivery_method || 'BALCAO'}
+          <ScrollArea className="max-h-[85vh]">
+            {/* Receipt / Nota — Premium Design */}
+            <div id="receipt-box" className="bg-white text-gray-900">
+              {/* Gradient Header with Store Branding */}
+              <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 px-6 pt-8 pb-10 text-white text-center overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '20px 20px' }} />
+                <div className="relative z-10">
+                  {store?.logo ? (
+                    <img src={store.logo} className="h-14 w-14 rounded-2xl object-cover mx-auto mb-3 ring-2 ring-white/30 shadow-lg" alt="Logo" />
+                  ) : (
+                    <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-sm mb-3 ring-2 ring-white/20 shadow-lg">
+                      <Package className="h-7 w-7 text-white" />
+                    </div>
+                  )}
+                  <h2 className="text-xl font-extrabold tracking-tight">{store?.name || 'Gerenc.AI'}</h2>
+                  <p className="text-[10px] text-white/70 uppercase tracking-[0.25em] mt-1 font-bold">Comprovante de Venda</p>
+                </div>
+                {/* Wave / Curve bottom */}
+                <div className="absolute -bottom-1 left-0 right-0">
+                  <svg viewBox="0 0 420 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full"><path d="M0 30V10C70 25 140 0 210 10C280 20 350 5 420 15V30H0Z" fill="white" /></svg>
                 </div>
               </div>
-              {selectedOrder?.delivery_method === 'ENTREGA' && (selectedOrder?.delivery_address || (selectedOrder as any)?.endereco_entrega) && (
-                <div className="space-y-1 pt-2 border-t border-border/50">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Endereço de Entrega:</span>
-                  <p className="text-sm bg-muted/30 p-3 rounded-xl border border-border/50 italic">{selectedOrder.delivery_address || (selectedOrder as any)?.endereco_entrega}</p>
-                </div>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Itens do Pedido</p>
-              <div className="space-y-2 border border-border rounded-xl p-3 bg-muted/10">
-                {(selectedOrder?.items || selectedOrder?.itens || []).map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-sm py-1 border-b border-border/50 last:border-none">
-                    <span>{item.quantity}x {item.product_name}</span>
-                    <span className="font-bold">R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}</span>
+              <div className="px-6 pb-6">
+                {/* Order Info Pill */}
+                <div className="flex items-center justify-between text-xs -mt-3 mb-5 bg-gray-50 rounded-2xl p-3.5 border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="h-7 w-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                      <Receipt className="h-3.5 w-3.5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Pedido</p>
+                      <p className="font-extrabold text-gray-900 text-sm">#{selectedOrder?.id}</p>
+                    </div>
                   </div>
-                ))}
-                {Number(selectedOrder?.delivery_fee || (selectedOrder as any)?.taxa_entrega || 0) > 0 && (
-                  <div className="flex justify-between text-sm py-1 font-bold text-primary">
-                    <span>Taxa de Entrega</span>
-                    <span>R$ {parseFloat((selectedOrder?.delivery_fee || (selectedOrder as any)?.taxa_entrega || 0).toString()).toFixed(2).replace('.', ',')}</span>
+                  <div className="text-right">
+                    <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Data</p>
+                    <p className="font-mono text-gray-700 text-[11px]">
+                      {selectedOrder?.created_at && new Date(selectedOrder.created_at).toLocaleString('pt-BR', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Info Grid — 2 columns */}
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1"><User className="h-2.5 w-2.5" /> Cliente</p>
+                    <p className="font-bold text-gray-800 text-xs truncate">{selectedOrder?.cliente_name || selectedOrder?.cliente_name_manual || 'Balcão'}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1"><UserCog className="h-2.5 w-2.5" /> Operador</p>
+                    <p className="font-bold text-gray-800 text-xs truncate">{selectedOrder?.operador_nome || selectedOrder?.operator_name || 'Admin'}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1">
+                      {(selectedOrder?.payment_method || selectedOrder?.forma_pagto) === 'PIX'
+                        ? <QrCode className="h-2.5 w-2.5" />
+                        : <Banknote className="h-2.5 w-2.5" />
+                      }
+                      Pagamento
+                    </p>
+                    <p className="font-bold text-gray-800 text-xs">{selectedOrder?.payment_method || selectedOrder?.forma_pagto}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1">
+                      {selectedOrder?.delivery_method === 'ENTREGA'
+                        ? <Truck className="h-2.5 w-2.5" />
+                        : selectedOrder?.delivery_method === 'RETIRADA'
+                          ? <ShoppingBag className="h-2.5 w-2.5" />
+                          : <Warehouse className="h-2.5 w-2.5" />
+                      }
+                      Entrega
+                    </p>
+                    <p className="font-bold text-gray-800 text-xs">{selectedOrder?.delivery_method || 'BALCÃO'}</p>
+                  </div>
+                </div>
+
+                {selectedOrder?.delivery_method === 'ENTREGA' && (selectedOrder?.delivery_address || (selectedOrder as any)?.endereco_entrega) && (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 mb-5 flex items-start gap-2">
+                    <MapPin className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-[9px] text-amber-600 uppercase font-bold tracking-wider mb-0.5">Endereço de Entrega</p>
+                      <p className="text-xs text-gray-700 leading-relaxed">{selectedOrder.delivery_address || (selectedOrder as any)?.endereco_entrega}</p>
+                    </div>
                   </div>
                 )}
+
+                {/* Section Label */}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-[9px] text-gray-400 uppercase tracking-[0.2em] font-bold">Itens do Pedido</span>
+                  <div className="h-px flex-1 bg-gray-200" />
+                </div>
+
+                {/* Items — Card Style */}
+                <div className="space-y-2 mb-5">
+                  {(selectedOrder?.items || selectedOrder?.itens || []).map((item: any, idx: number) => (
+                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl ${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} border border-gray-100`}>
+                      <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-extrabold text-emerald-700">{item.quantity}x</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-800 truncate">{item.product_name}</p>
+                        <p className="text-[10px] text-gray-400 font-mono">R$ {parseFloat(item.unit_price?.toString() || '0').toFixed(2).replace('.', ',')} / un</p>
+                      </div>
+                      <span className="text-sm font-extrabold text-gray-900 whitespace-nowrap font-mono">
+                        R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Totals — Premium Style */}
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 border border-gray-200 space-y-2">
+                  {Number(selectedOrder?.delivery_fee || (selectedOrder as any)?.taxa_entrega || 0) > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500 flex items-center gap-1"><Truck className="h-3 w-3" /> Taxa de Entrega</span>
+                      <span className="font-mono text-gray-700 font-bold">R$ {parseFloat((selectedOrder?.delivery_fee || (selectedOrder as any)?.taxa_entrega || 0).toString()).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  )}
+                  {Number(selectedOrder?.discount || selectedOrder?.desconto || 0) > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500 flex items-center gap-1"><Tag className="h-3 w-3" /> Desconto</span>
+                      <span className="font-mono text-emerald-600 font-bold">-R$ {parseFloat((selectedOrder?.discount || selectedOrder?.desconto || 0).toString()).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-gray-200 pt-3 mt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total</span>
+                      <span className="text-2xl font-extrabold text-gray-900 tracking-tight">R$ {parseFloat((selectedOrder?.total || 0).toString()).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  </div>
+                  {Number(selectedOrder?.received_amount || (selectedOrder as any)?.valor_recebido || 0) > 0 && (
+                    <div className="flex justify-between text-xs pt-2 border-t border-gray-200">
+                      <span className="text-gray-400">Recebido</span>
+                      <span className="font-mono text-gray-600">R$ {parseFloat((selectedOrder?.received_amount || (selectedOrder as any)?.valor_recebido || 0).toString()).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  )}
+                  {Number(selectedOrder?.change_amount || (selectedOrder as any)?.troco || 0) > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-400">Troco</span>
+                      <span className="font-mono font-bold text-emerald-600">R$ {parseFloat((selectedOrder?.change_amount || (selectedOrder as any)?.troco || 0).toString()).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="text-center mt-5 pt-4 border-t border-dashed border-gray-200">
+                  <p className="text-[10px] text-gray-500 font-bold">Obrigado pela preferência! 💚</p>
+                  <p className="text-[9px] text-gray-300 mt-1">{store?.name || 'Gerenc.AI'} — Gestão Inteligente</p>
+                  {store?.whatsapp && <p className="text-[9px] text-gray-300 mt-0.5">📱 {store.whatsapp}</p>}
+                </div>
               </div>
             </div>
+          </ScrollArea>
 
-            <div className="flex justify-between items-end pt-4 border-t border-border gap-4">
-              <div className="space-y-1 min-w-fit">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor Total</p>
-                <p className="text-2xl font-display font-extrabold text-primary">R$ {parseFloat((selectedOrder?.total || 0).toString()).toFixed(2).replace('.', ',')}</p>
+          <div className="p-4 bg-card border-t border-border flex flex-col sm:flex-row gap-3">
+            {/* Status change */}
+            <div className="flex-1 flex items-center gap-2">
+              <StatusBadge status={selectedOrder?.status || 'REALIZADO'} />
+              <select
+                value={selectedOrder?.status}
+                onChange={(e) => handleUpdateStatus((selectedOrder as any).id, e.target.value as StatusPedido)}
+                disabled={updateStatusMutation.isPending}
+                className="flex-1 h-10 rounded-xl bg-muted/50 border-none px-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer hover:bg-muted transition-colors"
+              >
+                <option value="REALIZADO">Realizado</option>
+                <option value="PREPARANDO">Preparando</option>
+                <option value="ENVIADO">Enviado</option>
+                <option value="FINALIZADO">Finalizado</option>
+                <option value="CANCELADO">Cancelado</option>
+              </select>
+            </div>
+            {/* Share as JPG */}
+            <Button
+              variant="outline"
+              className="h-10 rounded-xl font-bold gap-2 border-primary/20 text-primary hover:bg-primary hover:text-white transition-all"
+              onClick={async () => {
+                const el = document.getElementById('receipt-box');
+                if (!el) return;
+                try {
+                  const dataUrl = await htmlToImage.toJpeg(el, { quality: 0.95, backgroundColor: '#ffffff', skipFonts: true });
+                  const link = document.createElement('a');
+                  link.download = `pedido-${selectedOrder?.id}.jpg`;
+                  link.href = dataUrl;
+                  link.click();
+                  toast.success('📄 Recibo exportado como JPG!');
+                } catch (err) {
+                  console.error(err);
+                }
+              }}
+            >
+              <Share2 className="h-4 w-4" /> Compartilhar JPG
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Post-finalize Receipt Dialog — Premium */}
+      <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-[420px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Recibo</DialogTitle>
+            <DialogDescription>Recibo do pedido finalizado.</DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[85vh]">
+            <div id="finalize-receipt" className="bg-white text-gray-900">
+              {/* Success + Store Header */}
+              <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 px-6 pt-6 pb-10 text-white text-center overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '20px 20px' }} />
+                <div className="relative z-10">
+                  {/* Success check */}
+                  <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm mb-3 ring-2 ring-white/20">
+                    <Check className="h-6 w-6 text-white" />
+                  </div>
+                  <p className="text-xs text-white/80 font-bold uppercase tracking-[0.2em] mb-1">Venda Realizada</p>
+                  <h2 className="text-xl font-extrabold tracking-tight">{store?.name || 'Gerenc.AI'}</h2>
+                </div>
+                <div className="absolute -bottom-1 left-0 right-0">
+                  <svg viewBox="0 0 420 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full"><path d="M0 30V10C70 25 140 0 210 10C280 20 350 5 420 15V30H0Z" fill="white" /></svg>
+                </div>
               </div>
 
-              <div className="flex-1 max-w-[200px] space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Alterar Status</p>
-                <select
-                  value={selectedOrder?.status}
-                  onChange={(e) => handleUpdateStatus((selectedOrder as any).id, e.target.value as StatusPedido)}
-                  disabled={updateStatusMutation.isPending}
-                  className="w-full h-10 rounded-xl bg-muted/50 border-none px-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer hover:bg-muted transition-colors"
-                >
-                  <option value="REALIZADO">Realizado (Inicial)</option>
-                  <option value="PREPARANDO">Preparando</option>
-                  <option value="ENVIADO">Enviado</option>
-                  <option value="FINALIZADO">Finalizado</option>
-                  <option value="CANCELADO">Cancelado</option>
-                </select>
+              <div className="px-6 pb-6">
+                {/* Order Info Pill */}
+                <div className="flex items-center justify-between text-xs -mt-3 mb-5 bg-gray-50 rounded-2xl p-3.5 border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="h-7 w-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                      <Receipt className="h-3.5 w-3.5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Pedido</p>
+                      <p className="font-extrabold text-gray-900 text-sm">#{lastCreatedOrder?.id}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Data</p>
+                    <p className="font-mono text-gray-700 text-[11px]">
+                      {lastCreatedOrder?.created_at && new Date(lastCreatedOrder.created_at).toLocaleString('pt-BR', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-3 gap-2 mb-5">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1"><User className="h-2.5 w-2.5" /> Cliente</p>
+                    <p className="font-bold text-gray-800 text-xs truncate">{lastCreatedOrder?.customer_name_manual || 'Balcão'}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1">
+                      {lastCreatedOrder?.payment_method === 'PIX' ? <QrCode className="h-2.5 w-2.5" /> : <Banknote className="h-2.5 w-2.5" />}
+                      Pagto
+                    </p>
+                    <p className="font-bold text-gray-800 text-xs">{lastCreatedOrder?.payment_method}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1">
+                      {lastCreatedOrder?.delivery_method === 'ENTREGA' ? <Truck className="h-2.5 w-2.5" /> : <Warehouse className="h-2.5 w-2.5" />}
+                      Entrega
+                    </p>
+                    <p className="font-bold text-gray-800 text-xs">{lastCreatedOrder?.delivery_method || 'BALCÃO'}</p>
+                  </div>
+                </div>
+
+                {/* Section label */}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-[9px] text-gray-400 uppercase tracking-[0.2em] font-bold">Itens</span>
+                  <div className="h-px flex-1 bg-gray-200" />
+                </div>
+
+                {/* Items — Card Style */}
+                <div className="space-y-2 mb-5">
+                  {(lastCreatedOrder?.items || []).map((item: any, idx: number) => (
+                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl ${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} border border-gray-100`}>
+                      <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-extrabold text-emerald-700">{item.quantity}x</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-800 truncate">{item.product_name}</p>
+                      </div>
+                      <span className="text-sm font-extrabold text-gray-900 whitespace-nowrap font-mono">
+                        R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Total Card */}
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 border border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total</span>
+                    <span className="text-2xl font-extrabold text-gray-900 tracking-tight">R$ {parseFloat((lastCreatedOrder?.total || 0).toString()).toFixed(2).replace('.', ',')}</span>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="text-center mt-5 pt-4 border-t border-dashed border-gray-200">
+                  <p className="text-[10px] text-gray-500 font-bold">Obrigado pela preferência! 💚</p>
+                  <p className="text-[9px] text-gray-300 mt-1">{store?.name || 'Gerenc.AI'} — Gestão Inteligente</p>
+                  {store?.whatsapp && <p className="text-[9px] text-gray-300 mt-0.5">📱 {store.whatsapp}</p>}
+                </div>
               </div>
             </div>
+          </ScrollArea>
+          <div className="p-4 bg-card border-t border-border flex gap-3">
+            <Button variant="ghost" onClick={() => setIsReceiptOpen(false)} className="flex-1 h-10 rounded-xl">Fechar</Button>
+            <Button
+              className="flex-1 h-10 rounded-xl font-bold gap-2 transition-all"
+              onClick={async () => {
+                const el = document.getElementById('finalize-receipt');
+                if (!el) return;
+                try {
+                  const dataUrl = await htmlToImage.toJpeg(el, { quality: 0.95, backgroundColor: '#ffffff', skipFonts: true });
+                  const link = document.createElement('a');
+                  link.download = `recibo-${lastCreatedOrder?.id}.jpg`;
+                  link.href = dataUrl;
+                  link.click();
+                  toast.success('📄 Recibo salvo como JPG!');
+                } catch (err) { console.error(err); }
+              }}
+            >
+              <Share2 className="h-4 w-4" /> Compartilhar JPG
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, JSONParser
 from stores.views import MultiTenantViewSet
 from .models import Product, Category, StockMovement
 from .serializers import ProductSerializer, CategorySerializer, StockMovementSerializer
@@ -24,6 +25,7 @@ class CategoryViewSet(MultiTenantViewSet):
 class ProductViewSet(MultiTenantViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    parser_classes = (MultiPartParser, JSONParser)
     permission_classes = [HasRolePermission]
     required_permissions = {
         'list': 'pdv.vender',

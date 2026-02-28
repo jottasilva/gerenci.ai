@@ -84,6 +84,14 @@ export default function Dashboard() {
     total_customers: 0
   };
 
+  const periodKpis = stats?.period_kpis || {
+    revenue: 0,
+    orders: 0,
+    avg_ticket: 0
+  };
+
+  const periodLabel = stats?.period_label || 'Hoje';
+
   const salesByCategory = stats?.category_sales || [];
   const topProducts = stats?.top_products || [];
 
@@ -143,20 +151,20 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          titulo="Vendas Hoje"
-          valor={`R$ ${(stats?.today?.revenue || 0).toFixed(2).replace('.', ',')}`}
+          titulo={`Vendas ${periodLabel}`}
+          valor={`R$ ${(periodKpis.revenue || 0).toFixed(2).replace('.', ',')}`}
           variacao={5.2}
           icon={DollarSign}
         />
         <KPICard
-          titulo="Pedidos Hoje"
-          valor={String(stats?.today?.orders || 0)}
+          titulo={`Pedidos ${periodLabel}`}
+          valor={String(periodKpis.orders || 0)}
           variacao={12.8}
           icon={ShoppingCart}
         />
         <KPICard
-          titulo="Ticket Médio Hoje"
-          valor={`R$ ${(stats?.today?.avg_ticket || 0).toFixed(2).replace('.', ',')}`}
+          titulo={`Ticket Médio ${periodLabel}`}
+          valor={`R$ ${(periodKpis.avg_ticket || 0).toFixed(2).replace('.', ',')}`}
           variacao={2.4}
           icon={TrendingUp}
         />

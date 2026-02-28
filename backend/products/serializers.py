@@ -10,6 +10,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.ReadOnlyField(source='category.name')
+    supplier_name = serializers.ReadOnlyField(source='supplier.name')
 
     # Portuguese alias read fields for frontend compatibility
     nome = serializers.CharField(source='name', read_only=True)
@@ -25,8 +26,8 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = (
-            'id', 'name', 'description', 'price', 'stock', 'min_stock',
-            'category', 'category_name', 'sku', 'is_active',
+            'id', 'name', 'description', 'price', 'cost_price', 'stock', 'min_stock',
+            'category', 'category_name', 'supplier', 'supplier_name', 'sku', 'image', 'is_active',
             # Portuguese aliases (read-only, for frontend)
             'nome', 'preco', 'estoque', 'estoque_min', 'ativo', 'categoria',
         )

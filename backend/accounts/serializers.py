@@ -2,21 +2,31 @@ from rest_framework import serializers
 from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=False)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     id = serializers.CharField(source='whatsapp', read_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'whatsapp', 'first_name', 'last_name', 'role', 'store', 'ativo', 'password')
-        read_only_fields = ('role',) # Prevent self-promotion through profile update
+        fields = ('id', 'whatsapp', 'login_name', 'first_name', 'last_name', 'role', 'store', 'ativo', 'password', 'needs_password_setup')
+        read_only_fields = ('store',)
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        user = User(**validated_data)
+        if password:
+            user.set_password(password)
+            user.needs_password_setup = False
+        else:
+            user.set_unusable_password()
+            user.needs_password_setup = True
+        user.save()
+        return user
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
         if password:
             instance.set_password(password)
-        
-        # Portuguese field mapping if any (though frontend currently uses first_name/last_name)
-        # For now, just standard update
+            instance.needs_password_setup = False
         return super().update(instance, validated_data)
 
 class RegisterSerializer(serializers.ModelSerializer):

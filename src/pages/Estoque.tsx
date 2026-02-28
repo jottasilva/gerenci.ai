@@ -1,15 +1,11 @@
 import { useState } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Minus, Plus, Loader2 } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Minus, Plus, Loader2, Clock, User, Package } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EstoqueIndicator } from '@/components/shared/EstoqueIndicator';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -59,6 +55,14 @@ export default function Estoque() {
     );
   }
 
+  const getTypeConfig = (type: string) => {
+    switch (type) {
+      case 'ENTRADA': return { icon: ArrowDown, label: 'Entrada', color: 'bg-primary/10 text-primary border-primary/20', sign: '+' };
+      case 'SAIDA': return { icon: ArrowUp, label: 'Saída', color: 'bg-destructive/10 text-destructive border-destructive/20', sign: '-' };
+      default: return { icon: Minus, label: 'Ajuste', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20', sign: '±' };
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -103,45 +107,58 @@ export default function Estoque() {
         </div>
       )}
 
-      {/* Movement history */}
+      {/* Movement history - 2-line card layout */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <h3 className="font-display font-bold text-foreground mb-4">Histórico de Movimentações</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground">
-                <th className="text-left py-3 px-3 font-medium">Tipo</th>
-                <th className="text-left py-3 px-3 font-medium">Produto</th>
-                <th className="text-right py-3 px-3 font-medium">Qtd</th>
-                <th className="text-left py-3 px-3 font-medium">Motivo</th>
-                <th className="text-left py-3 px-3 font-medium">Operador</th>
-                <th className="text-right py-3 px-3 font-medium">Data</th>
-              </tr>
-            </thead>
-            <tbody>
-              {movements.map((m, i) => (
-                <tr key={m.id} className={`border-b border-border/50 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}>
-                  <td className="py-3 px-3">
-                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md ${(m.type || m.tipo) === 'ENTRADA' ? 'bg-primary/10 text-primary' :
-                      (m.type || m.tipo) === 'SAIDA' ? 'bg-destructive/10 text-destructive' :
-                        'bg-orange-500/10 text-orange-500'
-                      }`}>
-                      {(m.type || m.tipo) === 'ENTRADA' ? <ArrowDown className="h-3 w-3" /> :
-                        (m.type || m.tipo) === 'SAIDA' ? <ArrowUp className="h-3 w-3" /> :
-                          <Minus className="h-3 w-3" />}
-                      {m.type || m.tipo}
+        {movements.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Package className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p className="font-medium">Nenhuma movimentação registrada</p>
+            <p className="text-xs mt-1">Lance uma movimentação para começar.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {movements.map((m: any) => {
+              const type = m.type || m.tipo;
+              const cfg = getTypeConfig(type);
+              const Icon = cfg.icon;
+              const qty = m.quantity || m.quantidade;
+              const productName = m.product_name || m.produto_nome;
+              const reason = m.reason || m.motivo;
+              const operator = m.operator_name || m.operador;
+              const date = new Date(m.created_at || m.criado_em);
+
+              return (
+                <div key={m.id} className="rounded-xl border border-border/50 p-3 hover:bg-muted/10 transition-colors">
+                  {/* Line 1: Type + Product + Quantity + Date */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${cfg.color}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className="font-bold text-sm text-foreground truncate">{productName}</span>
+                      <span className={`text-sm font-mono font-bold shrink-0 ${type === 'ENTRADA' ? 'text-primary' : type === 'SAIDA' ? 'text-destructive' : 'text-orange-500'}`}>
+                        {cfg.sign}{qty}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground shrink-0 font-mono">
+                      {date.toLocaleDateString('pt-BR')} {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                  </td>
-                  <td className="py-3 px-3 text-foreground">{m.product_name || m.produto_nome}</td>
-                  <td className="py-3 px-3 text-right font-mono text-foreground">{m.quantity || m.quantidade}</td>
-                  <td className="py-3 px-3 text-muted-foreground">{m.reason || m.motivo}</td>
-                  <td className="py-3 px-3 text-muted-foreground">{m.operator_name || m.operador}</td>
-                  <td className="py-3 px-3 text-right text-muted-foreground text-xs">{new Date(m.created_at || m.criado_em!).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                  {/* Line 2: Reason + Operator */}
+                  <div className="flex items-center justify-between mt-1.5 pl-11">
+                    <span className="text-xs text-muted-foreground truncate">{reason}</span>
+                    {operator && (
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
+                        <User className="h-3 w-3" /> {operator}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

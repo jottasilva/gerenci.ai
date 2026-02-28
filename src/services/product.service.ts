@@ -28,13 +28,47 @@ export const productService = {
         await api.delete(`categories/${id}/`);
     },
 
-    createProduct: async (product: Omit<Produto, 'id'>): Promise<Produto> => {
-        const response = await api.post('products/', product);
+    createProduct: async (product: any): Promise<Produto> => {
+        // WHITELIST: Only these fields are writable on the backend
+        const writableFields = ['name', 'sku', 'category', 'price', 'cost_price', 'stock', 'min_stock', 'is_active', 'supplier', 'description'];
+        const formData = new FormData();
+        for (const key of writableFields) {
+            let value = product[key];
+            // Map stock_min -> min_stock
+            if (key === 'min_stock' && value === undefined) value = product['stock_min'];
+            if (value !== null && value !== undefined && value !== '') {
+                formData.append(key, String(value));
+            }
+        }
+        // Handle image file separately
+        if (product.image instanceof File) {
+            formData.append('image', product.image);
+        }
+        const response = await api.post('products/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         return response.data;
     },
 
-    updateProduct: async (product: Produto): Promise<Produto> => {
-        const response = await api.put(`products/${product.id}/`, product);
+    updateProduct: async (product: any): Promise<Produto> => {
+        // WHITELIST: Only these fields are writable on the backend
+        const writableFields = ['name', 'sku', 'category', 'price', 'cost_price', 'stock', 'min_stock', 'is_active', 'supplier', 'description'];
+        const formData = new FormData();
+        for (const key of writableFields) {
+            let value = product[key];
+            // Map stock_min -> min_stock
+            if (key === 'min_stock' && value === undefined) value = product['stock_min'];
+            if (value !== null && value !== undefined) {
+                formData.append(key, String(value));
+            }
+        }
+        // Handle image: only send if it's a new File, skip existing URL strings
+        if (product.image instanceof File) {
+            formData.append('image', product.image);
+        }
+        const response = await api.patch(`products/${product.id}/`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         return response.data;
     },
 
@@ -48,7 +82,14 @@ export const productService = {
     },
 
     createStockMovement: async (movement: any) => {
-        const response = await api.post('stock-movements/', movement);
+        // Map frontend field names to backend
+        const payload = {
+            product: movement.product,
+            movement_type: movement.type || movement.movement_type,
+            quantity: movement.quantity,
+            reason: movement.reason
+        };
+        const response = await api.post('stock-movements/', payload);
         return response.data;
     }
 };

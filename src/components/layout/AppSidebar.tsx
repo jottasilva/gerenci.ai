@@ -1,7 +1,7 @@
 import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, Package, Warehouse, Users,
-  UserCog, Settings, LogOut, Menu, X, Store, CreditCard, Key, HelpCircle
+  UserCog, Settings, LogOut, Menu, X, Store, CreditCard, Key, HelpCircle, Truck
 } from 'lucide-react';
 import { useState } from 'react';
 import { authService } from '@/services/auth.service';
@@ -18,6 +18,7 @@ const navItems = [
   { label: 'Pedidos', path: '/pedidos', icon: ShoppingCart },
   { label: 'Produtos', path: '/produtos', icon: Package },
   { label: 'Estoque', path: '/estoque', icon: Warehouse, roles: ['ADMIN', 'GERENTE'] },
+  { label: 'Fornecedores', path: '/fornecedores', icon: Truck, roles: ['ADMIN', 'GERENTE'] },
   { label: 'Clientes', path: '/clientes', icon: Users, roles: ['ADMIN', 'GERENTE'] },
   { label: 'Operadores', path: '/operadores', icon: UserCog, roles: ['ADMIN', 'GERENTE'] },
   { label: 'Configurações', path: '/configuracoes', icon: Settings, roles: ['ADMIN', 'GERENTE'] },

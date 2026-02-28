@@ -18,6 +18,7 @@ class UserManager(BaseUserManager):
 class User(AbstractUser):
     username = None
     whatsapp = models.CharField(max_length=20, primary_key=True)
+    login_name = models.CharField(max_length=50, null=True, blank=True, help_text='Login/apelido do operador')
     role = models.CharField(max_length=20, choices=[
         ('ADMIN', 'Admin'),
         ('GERENTE', 'Gerente'),
@@ -26,6 +27,7 @@ class User(AbstractUser):
     store = models.ForeignKey('stores.Store', on_delete=models.CASCADE, null=True, blank=True, related_name='members')
     operator = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_users')
     ativo = models.BooleanField(default=True)
+    needs_password_setup = models.BooleanField(default=False, help_text='True se operador precisa definir senha no primeiro login')
 
     USERNAME_FIELD = 'whatsapp'
     REQUIRED_FIELDS = []
