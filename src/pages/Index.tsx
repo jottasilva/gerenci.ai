@@ -73,7 +73,8 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const { data: serverPlans } = useGetPlans();
 
-  const displayPlans = serverPlans && serverPlans.length > 0 ? serverPlans : defaultPlans;
+  const displayPlans = (serverPlans && serverPlans.length > 0 ? serverPlans : defaultPlans)
+    .filter(plan => plan.slug !== 'free' && !plan.name.toLowerCase().includes('free'));
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -112,7 +113,7 @@ export default function LandingPage() {
                   <LayoutDashboard className="mr-2 h-4 w-4" /> Painel
                 </Button>
               </Link>
-              <Link to="/login">
+              <Link to="/free">
                 <Button className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl">
                   Começar grátis
                 </Button>
@@ -414,7 +415,7 @@ export default function LandingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link to="/login">
+                  <Link to="/free">
                     <Button className={`w-full rounded-xl font-bold ${style.button}`}>
                       Começar grátis
                     </Button>

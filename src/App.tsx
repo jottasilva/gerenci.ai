@@ -22,6 +22,7 @@ import Unauthorized from "./pages/Unauthorized";
 import Privacidade from "./pages/Privacidade";
 import Termos from "./pages/Termos";
 import Fornecedores from "./pages/Fornecedores";
+import FreePlan from "./pages/FreePlan";
 import { CookieBanner } from "@/components/CookieBanner";
 
 const queryClient = new QueryClient({
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/privacidade" element={<Privacidade />} />
           <Route path="/termos" element={<Termos />} />
+          <Route path="/free" element={<FreePlan />} />
 
           <Route element={<PrivateRoute />}>
             <Route element={<StoreProvider><DashboardLayout /></StoreProvider>}>

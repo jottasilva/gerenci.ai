@@ -77,15 +77,6 @@ export default function Dashboard() {
   const [topProductsApi, setTopProductsApi] = useState<CarouselApi>();
   const [ordersApi, setOrdersApi] = useState<CarouselApi>();
 
-  if (isLoadingProducts || isLoadingOrders || isLoadingCustomers || isLoadingStats) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
-        <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        <p className="text-muted-foreground font-medium">Sincronizando dados...</p>
-      </div>
-    );
-  }
-
   const semEstoque = useMemo(() => products.filter(p => p.stock <= 0), [products]);
   const estoqueBaixo = useMemo(() => products.filter(p => p.stock > 0 && p.stock <= (p.min_stock || p.stock_min || 10)), [products]);
 
@@ -116,6 +107,15 @@ export default function Dashboard() {
   ], [semEstoque, estoqueBaixo]);
 
   const sortedTopProducts = useMemo(() => [...(stats?.top_products || [])].sort((a: any, b: any) => b.total - a.total), [stats]);
+
+  if (isLoadingProducts || isLoadingOrders || isLoadingCustomers || isLoadingStats) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <p className="text-muted-foreground font-medium">Sincronizando dados...</p>
+      </div>
+    );
+  }
 
   const handleExport = () => {
     const reportData = [
