@@ -19,7 +19,10 @@ import Assinaturas from "./pages/Assinaturas";
 import AdminKeys from "./pages/AdminKeys";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
+import Privacidade from "./pages/Privacidade";
+import Termos from "./pages/Termos";
 import Fornecedores from "./pages/Fornecedores";
+import { CookieBanner } from "@/components/CookieBanner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +41,9 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/privacidade" element={<Privacidade />} />
+          <Route path="/termos" element={<Termos />} />
+
           <Route element={<PrivateRoute />}>
             <Route element={<StoreProvider><DashboardLayout /></StoreProvider>}>
               <Route path="/dashboard" element={<Dashboard />} />
@@ -63,6 +69,7 @@ const App = () => (
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <CookieBanner />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

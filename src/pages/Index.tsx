@@ -18,6 +18,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { InteractiveParticles } from '@/components/landing/InteractiveParticles';
 
 const features = [
   { icon: ShoppingCart, title: 'PDV por mensagem', desc: 'Abra pedidos e feche vendas sem sair do chat' },
@@ -295,41 +296,51 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="como-funciona" className="py-24 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-orange-500/[0.02] -skew-y-3 transform origin-right" />
+      {/* Steps Section - Symmetric with Dark Veil BG */}
+      <section id="como-funciona" className="py-24 px-4 bg-[#030303] relative overflow-hidden">
+        {/* Interactive Background Particles */}
+        <InteractiveParticles />
+
+        {/* Dark Veil - No orange gradient per user request */}
+        <div className="absolute inset-0 bg-black/40" />
 
         <div className="w-[80vw] md:max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4 font-hero">Como funciona</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Tudo o que você precisa em 5 passos simples para transformar seu atendimento</p>
+          <div className="text-center mb-20">
+            <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-6 tracking-tight">Como funciona</h2>
+            <p className="text-zinc-400 text-lg max-w-2xl mx-auto">Tudo o que você precisa em 5 passos simples para transformar seu atendimento</p>
           </div>
 
-          {/* Desktop Stepper */}
-          <div className="hidden md:flex items-start justify-between gap-4 relative">
-            <div className="absolute top-12 left-0 right-0 h-0.5 bg-border z-0" />
+          {/* Desktop Stepper - Fully Symmetric with Stagger Items */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={{
+              visible: { transition: { staggerChildren: 0.2 } }
+            }}
+            className="hidden md:flex items-start justify-between gap-4 relative"
+          >
             {steps.map((step, i) => (
               <motion.div
                 key={step.title}
-                custom={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
+                variants={{
+                  hidden: { opacity: 0, x: -20 },
+                  visible: { opacity: 1, x: 0, transition: { duration: 0.5 } }
+                }}
                 className="flex-1 flex flex-col items-center text-center relative z-10"
               >
-                <div className="h-24 w-24 rounded-3xl bg-card border border-border shadow-sm flex items-center justify-center mb-6 group hover:border-orange-500/50 hover:shadow-orange-500/10 transition-all duration-300">
-                  <div className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center text-sm shadow-lg">
+                <div className="h-24 w-24 rounded-[2rem] bg-zinc-900/50 backdrop-blur-xl border border-white/5 shadow-2xl flex items-center justify-center mb-6 group hover:border-orange-500/40 hover:bg-zinc-900/80 transition-all duration-500">
+                  <div className="absolute -top-2 -right-2 h-7 w-7 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center text-xs shadow-[0_0_20px_rgba(249,115,22,0.4)]">
                     {i + 1}
                   </div>
-                  <step.icon className="h-10 w-10 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
+                  <step.icon className="h-9 w-9 text-orange-500 group-hover:scale-110 group-hover:drop-shadow-[0_0_10px_rgba(249,115,22,0.5)] transition-all duration-500" />
                 </div>
-                <h3 className="text-sm font-bold text-foreground max-w-[150px] leading-tight">
+                <h3 className="text-sm font-bold text-zinc-200 max-w-[150px] leading-tight tracking-wide uppercase font-display">
                   {step.title}
                 </h3>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           {/* Mobile Stepper */}
           <div className="md:hidden space-y-12 relative before:absolute before:left-[23px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gradient-to-b before:from-orange-500/50 before:via-orange-500/20 before:to-transparent">
@@ -344,7 +355,7 @@ export default function LandingPage() {
                 className="flex gap-6 relative"
               >
                 <div className="relative z-10">
-                  <div className="h-12 w-12 rounded-2xl bg-card border border-border flex items-center justify-center shadow-sm">
+                  <div className="h-12 w-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center shadow-lg">
                     <step.icon className="h-6 w-6 text-orange-500" />
                   </div>
                   <div className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center text-[10px] shadow-md">
@@ -352,10 +363,10 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="pt-2">
-                  <h3 className="text-lg font-bold text-foreground mb-1 leading-tight">
+                  <h3 className="text-lg font-bold text-white mb-1 leading-tight">
                     {step.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-zinc-400">
                     {i === 0 && 'Configure seu bot em minutos e conecte com seu WhatsApp profissional.'}
                     {i === 1 && 'Importe sua planilha ou cadastre seus produtos pelo próprio chat.'}
                     {i === 2 && 'Crie acessos para seus vendedores com diferentes permissões.'}
@@ -415,45 +426,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer CTA */}
-      <section className="py-20 px-4">
-        <div className="w-[80vw] md:max-w-7xl mx-auto text-center">
-          <h2 className="text-3xl font-display font-bold text-foreground mb-4">
-            Comece a vender pelo WhatsApp hoje mesmo
-          </h2>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/login">
-              <Button size="lg" className="bg-primary text-primary-foreground font-bold rounded-xl px-10 hover:bg-primary/90">
-                Começar grátis <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/dashboard">
-              <Button size="lg" variant="outline" className="border-border text-foreground rounded-xl px-10 hover:bg-muted">
-                <LayoutDashboard className="mr-2 h-4 w-4" /> Acessar Painel
-              </Button>
-            </Link>
-          </div>
-          <p className="text-sm text-muted-foreground mt-4">14 dias grátis. Sem cartão de crédito.</p>
-        </div>
-      </section>
 
       {/* Simplified Footer */}
-      <footer className="border-t border-border py-8 px-4 bg-card/10">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <span className="font-display font-bold text-lg text-foreground">Gerenci.AI</span>
+      <footer className="border-t border-border py-12 px-4 bg-card/10">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} Todos os direitos reservados.
+            </p>
+            <p className="text-sm">
+              Desenvolvido por <a href="https://jrsn.space" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">JRSN.SPACE</a>
+            </p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-muted-foreground text-center">
-            <p>© {new Date().getFullYear()} Gerenci.AI. Todos os direitos reservados.</p>
-            <p>Desenvolvido por <a href="https://jrsn.space" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://jrsn.space</a></p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-muted-foreground">
-            <a href="#recursos" className="hover:text-foreground transition-colors">Recursos</a>
-            <a href="#como-funciona" className="hover:text-foreground transition-colors">Como funciona</a>
-            <a href="#precos" className="hover:text-foreground transition-colors">Preços</a>
-            <Link to="/login" className="hover:text-foreground transition-colors">Login</Link>
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm font-medium">
+            <Link to="/privacidade" className="text-muted-foreground hover:text-primary transition-colors">Política de Privacidade</Link>
+            <Link to="/termos" className="text-muted-foreground hover:text-primary transition-colors">Termos de Uso</Link>
+            <a href="#recursos" className="text-muted-foreground hover:text-foreground transition-colors">Recursos</a>
+            <a href="#precos" className="text-muted-foreground hover:text-foreground transition-colors">Preços</a>
           </div>
         </div>
       </footer>

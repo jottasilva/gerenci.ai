@@ -1,5 +1,6 @@
-import { Search, Plus, Pencil, Trash2, MoreHorizontal, Loader2, AlertTriangle, User, Building2 } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, MoreHorizontal, Loader2, AlertTriangle, User, Building2, ShieldCheck, Mail } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -51,6 +52,8 @@ export default function Clientes() {
     plano: 'BRONZE',
     agente_ativo: false,
     ativo: true,
+    privacy_accepted: false,
+    marketing_consent: false,
   });
 
   const filtered = clients.filter(c =>
@@ -75,6 +78,8 @@ export default function Clientes() {
         plano: 'BRONZE',
         agente_ativo: false,
         ativo: true,
+        privacy_accepted: false,
+        marketing_consent: false,
       });
     }
     setIsDialogOpen(true);
@@ -86,27 +91,27 @@ export default function Clientes() {
       return;
     }
 
+    // LGPD Enforcement: Privacy policy must be accepted for new clients
+    if (!editingClient && !formData.privacy_accepted) {
+      toast.error("É necessário que o cliente aceite a Política de Privacidade para prosseguir.");
+      return;
+    }
+
     try {
       if (editingClient) {
-        const {
-          id: _id, nome: _nome, ativo: _ativo, total_compras: _total, ...cleanData
-        } = { ...editingClient, ...formData } as any;
-
+        // Enforce the backend expected field names
         await updateMutation.mutateAsync({
-          id: editingClient.id,
-          name: formData.nome || (editingClient as any).name,
-          is_active: formData.ativo !== undefined ? formData.ativo : (editingClient as any).is_active,
-          address: formData.endereco || (editingClient as any).endereco || (editingClient as any).address,
-          business_name: formData.negocio || (editingClient as any).negocio || (editingClient as any).business_name,
-          business_segment: formData.segmento || (editingClient as any).segmento || (editingClient as any).business_segment,
-          subscription_plan: formData.plano || (editingClient as any).plano || (editingClient as any).subscription_plan,
-          agent_active: formData.agente_ativo !== undefined ? formData.agente_ativo : (editingClient as any).agente_ativo || (editingClient as any).agent_active,
-          ...cleanData
+          ...editingClient,
+          ...formData,
+          name: formData.nome || editingClient.nome,
+          address: formData.endereco || (editingClient as any).address,
+          is_active: formData.ativo !== undefined ? formData.ativo : editingClient.ativo,
         } as Cliente);
       } else {
         await createMutation.mutateAsync(formData as Omit<Cliente, 'id'>);
       }
       setIsDialogOpen(false);
+      toast.success(editingClient ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
     } catch (err: any) {
       console.error(err);
       const msg = err.response?.data ? JSON.stringify(err.response.data) : (err.message || "Erro ao salvar cliente.");
@@ -115,7 +120,7 @@ export default function Clientes() {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Deseja realmente excluir este cliente?")) {
+    if (window.confirm("Deseja realmente excluir este cliente? Toda a exclusão seguirá as normas de anonimização da LGPD.")) {
       await deleteMutation.mutateAsync(id);
     }
   };
@@ -224,7 +229,7 @@ export default function Clientes() {
               {editingClient ? 'Editar Registro' : 'Novo Registro'}
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              Gerencie as informações pessoais e comerciais do cliente.
+              Gerencie as informações pessoais e comerciais do cliente em conformidade com a LGPD.
             </DialogDescription>
           </DialogHeader>
 
@@ -299,22 +304,62 @@ export default function Clientes() {
                   <Label htmlFor="endereco" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Endereço Residencial</Label>
                   <Input
                     id="endereco"
-                    value={formData.endereco || formData.address || ''}
+                    value={formData.endereco || (formData as any).address || ''}
                     onChange={e => setFormData({ ...formData, endereco: e.target.value })}
                     className="h-11 rounded-xl bg-muted/30 border-none"
                     placeholder="Rua, Número, Bairro, Cidade"
                   />
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
-                  <input
-                    type="checkbox"
-                    id="ativo"
-                    checked={formData.ativo}
-                    onChange={e => setFormData({ ...formData, ativo: e.target.checked })}
-                    className="h-5 w-5 rounded-lg border-muted-foreground/30 text-primary focus:ring-primary/20 transition-all"
-                  />
-                  <Label htmlFor="ativo" className="text-sm font-bold cursor-pointer">Cliente Ativo na Plataforma</Label>
+                <div className="space-y-4 pt-4 border-t border-border/50">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="ativo"
+                      checked={formData.ativo}
+                      onChange={e => setFormData({ ...formData, ativo: e.target.checked })}
+                      className="h-5 w-5 rounded-lg border-muted-foreground/30 text-primary focus:ring-primary/20 transition-all"
+                    />
+                    <Label htmlFor="ativo" className="text-sm font-bold cursor-pointer">Cliente Ativo na Plataforma</Label>
+                  </div>
+
+                  <div className="flex items-start gap-3 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50">
+                    <input
+                      type="checkbox"
+                      id="privacy_accepted"
+                      checked={formData.privacy_accepted}
+                      onChange={e => setFormData({ ...formData, privacy_accepted: e.target.checked })}
+                      className="mt-1 h-5 w-5 rounded-lg border-indigo-200 text-indigo-600 focus:ring-indigo-500/20 transition-all"
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="privacy_accepted" className="text-sm font-bold cursor-pointer text-indigo-900 flex items-center gap-1.5">
+                        <ShieldCheck className="h-4 w-4" />
+                        Aceite da Política de Privacidade
+                      </Label>
+                      <p className="text-xs text-indigo-600 leading-tight">
+                        O cliente leu e concorda com a nossa <Link to="/privacidade" target="_blank" className="underline font-semibold">Política de Privacidade</Link>. Obrigatório para novos cadastros.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <input
+                      type="checkbox"
+                      id="marketing_consent"
+                      checked={formData.marketing_consent}
+                      onChange={e => setFormData({ ...formData, marketing_consent: e.target.checked })}
+                      className="mt-1 h-5 w-5 rounded-lg border-slate-300 text-slate-600 focus:ring-slate-500/20 transition-all"
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="marketing_consent" className="text-sm font-bold cursor-pointer text-slate-800 flex items-center gap-1.5">
+                        <Mail className="h-4 w-4" />
+                        Consentimento de Marketing
+                      </Label>
+                      <p className="text-xs text-slate-500 leading-tight">
+                        O cliente aceita receber comunicações, promoções e novidades via WhatsApp/email.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 

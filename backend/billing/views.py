@@ -98,13 +98,47 @@ class LicenseKeySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = LicenseKey
-        fields = ('id', 'key', 'plan', 'plan_name', 'duration_days', 'is_used', 'activated_at', 'store', 'created_at')
+        fields = ('id', 'key', 'plan', 'plan_name', 'duration_days', 'operators_limit', 'managers_limit', 'is_used', 'activated_at', 'store', 'created_at')
         read_only_fields = ('id', 'is_used', 'activated_at', 'store', 'created_at')
 
 class LicenseKeyViewSet(viewsets.ModelViewSet):
     queryset = LicenseKey.objects.all().order_by('-created_at')
     serializer_class = LicenseKeySerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Format key as PLANO-XXXX-XXXX
+        import random, string
+        plan = serializer.validated_data.get('plan')
+        prefix = plan.slug.upper()
+        
+        # Determine limits: provided or from plan
+        operators_limit = serializer.validated_data.get('operators_limit')
+        if operators_limit is None:
+            operators_limit = plan.limits.get('max_operators', 1)
+            
+        managers_limit = serializer.validated_data.get('managers_limit')
+        if managers_limit is None:
+            managers_limit = plan.limits.get('max_managers', 1)
+
+        # If user didn't provide a key, generate one
+        custom_key = serializer.validated_data.get('key')
+        if not custom_key:
+            random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4)) + '-' + \
+                          ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+            key_str = f"{prefix}-{random_part}"
+        else:
+            # Ensure prefix is present
+            if not custom_key.startswith(f"{prefix}-"):
+                key_str = f"{prefix}-{custom_key}"
+            else:
+                key_str = custom_key
+                
+        serializer.save(
+            key=key_str,
+            operators_limit=operators_limit,
+            managers_limit=managers_limit
+        )
 
     def get_queryset(self):
         if self.request.user.is_staff or self.request.user.role == 'ADMIN':
@@ -123,11 +157,35 @@ class LicenseKeyViewSet(viewsets.ModelViewSet):
                       ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
         
         new_key = LicenseKey.objects.create(
-            key=new_key_str,
+            key=f"{old_key.plan.slug.upper()}-{new_key_str}",
             plan=old_key.plan,
-            duration_days=old_key.duration_days
+            duration_days=old_key.duration_days,
+            operators_limit=old_key.operators_limit,
+            managers_limit=old_key.managers_limit
         )
         return Response(LicenseKeySerializer(new_key).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    def extend_subscription(self, request, pk=None):
+        """
+        POST /api/license-keys/{id}/extend_subscription/
+        Directly extends the subscription of the store associated with this used key.
+        """
+        license_key = self.get_object()
+        if not license_key.is_used or not license_key.store:
+            return Response({'error': 'Esta chave ainda não foi utilizada ou não possui loja vinculada.'}, status=400)
+            
+        # Logic to update subscription (reuse upgrade_plan_with_duration)
+        from billing.subscription_service import upgrade_plan_with_duration
+        upgrade_plan_with_duration(
+            license_key.store, 
+            license_key.plan, 
+            license_key.duration_days, 
+            operators_limit=license_key.operators_limit,
+            managers_limit=license_key.managers_limit
+        )
+        
+        return Response({'message': f'Assinatura da loja {license_key.store.name} renovada por {license_key.duration_days} dias.'})
 
     @action(detail=False, methods=['post'])
     def activate(self, request):

@@ -1,12 +1,20 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-d6p(=5&y9u&79qzvje5oemb(v8#p$8*)y3&b+j)@-1ah09z!am'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+# ─── SECURITY (LGPD Art. 46) ────────────────────────────────────────────
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'INSECURE-dev-only-change-in-production')
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+# Encryption key for sensitive fields (CPF, CNPJ, etc.)
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'INSECURE-dev-only-change-in-production')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -22,6 +30,7 @@ INSTALLED_APPS = [
     'corsheaders',
     
     # Local apps
+    'core',
     'accounts',
     'stores',
     'products',
@@ -88,7 +97,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# DRF Settings
+# ─── DRF ─────────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -98,16 +107,37 @@ REST_FRAMEWORK = {
     ),
 }
 
+# ─── JWT (LGPD — minimize token exposure) ────────────────────────────────
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),    # Antes: 24h → agora: 30min
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),       # Antes: 7d  → agora: 1d
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
     'USER_ID_FIELD': 'whatsapp',
 }
 
-CORS_ALLOW_ALL_ORIGINS = True # In production, restrict this.
+# ─── CORS (LGPD Art. 46 — minimize attack surface) ──────────────────────
+CORS_ALLOWED_ORIGINS = os.environ.get(
+    'CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173'
+).split(',')
+CORS_ALLOW_ALL_ORIGINS = False  # NUNCA True em produção
 
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-store-id',
 ]
+
+# ─── SECURITY HEADERS (LGPD Art. 46) ────────────────────────────────────
+X_FRAME_OPTIONS = 'DENY'
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Ativar em produção (com HTTPS):
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True

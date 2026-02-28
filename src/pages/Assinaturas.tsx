@@ -102,6 +102,11 @@ const PLAN_META: Record<string, { icon: React.ElementType; gradient: string; bor
         gradient: 'from-purple-500/10 to-violet-500/5',
         border: 'border-purple-500/25',
     },
+    free: {
+        icon: Rocket,
+        gradient: 'from-gray-500/10 to-slate-500/5',
+        border: 'border-gray-500/20',
+    },
 };
 
 function UsageCard({ title, current, limit, icon }: { title: string; current: number; limit: number; icon: React.ReactNode }) {
@@ -269,6 +274,7 @@ export default function Assinaturas() {
         limits: {
             max_products: 50,
             max_operators: 1,
+            max_managers: 1,
             max_whatsapp: 1
         }
     });
@@ -281,6 +287,7 @@ export default function Assinaturas() {
             setEditingPlan(null);
             setPlanFormData({
                 name: '',
+                slug: 'basico',
                 description: '',
                 price: '0.00',
                 is_active: true,
@@ -289,6 +296,7 @@ export default function Assinaturas() {
                 limits: {
                     max_products: 50,
                     max_operators: 1,
+                    max_managers: 1,
                     max_whatsapp: 1
                 }
             });
@@ -324,6 +332,8 @@ export default function Assinaturas() {
     // Admin key generation form state
     const [adminSelectedPlan, setAdminSelectedPlan] = useState<string>('');
     const [adminDuration, setAdminDuration] = useState('30');
+    const [adminOperators, setAdminOperators] = useState('1');
+    const [adminManagers, setAdminManagers] = useState('1');
     const [adminCustomKey, setAdminCustomKey] = useState('');
 
     const subscription = billing?.subscription;
@@ -368,12 +378,24 @@ export default function Assinaturas() {
             return;
         }
 
-        const genKey = adminCustomKey || (Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase());
+        const selectedPlan = plans.find(p => p.id.toString() === adminSelectedPlan);
+        const prefix = selectedPlan?.slug?.toUpperCase() || 'KEY';
+
+        let genKey = adminCustomKey;
+        if (!genKey) {
+            const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+            genKey = `${prefix}-${randomPart}`;
+        } else if (!genKey.includes('-')) {
+            // If user typed a custom key without prefix, add it for consistency
+            genKey = `${prefix}-${genKey}`;
+        }
 
         try {
             await generateKeyMutation.mutateAsync({
                 plan: parseInt(adminSelectedPlan),
                 duration_days: parseInt(adminDuration),
+                operators_limit: parseInt(adminOperators),
+                managers_limit: parseInt(adminManagers),
                 key: genKey
             });
             toast.success(`Chave gerada: ${genKey}`);
@@ -566,6 +588,33 @@ export default function Assinaturas() {
                                             </div>
                                         </div>
 
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Operadores</label>
+                                                <div className="relative">
+                                                    <Users2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                    <Input
+                                                        type="number"
+                                                        value={adminOperators}
+                                                        onChange={e => setAdminOperators(e.target.value)}
+                                                        className="h-12 pl-10 rounded-xl bg-background border-border/50 font-bold"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Gerentes</label>
+                                                <div className="relative">
+                                                    <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                    <Input
+                                                        type="number"
+                                                        value={adminManagers}
+                                                        onChange={e => setAdminManagers(e.target.value)}
+                                                        className="h-12 pl-10 rounded-xl bg-background border-border/50 font-bold"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Código Customizado (Opcional)</label>
                                             <div className="relative">
@@ -577,6 +626,11 @@ export default function Assinaturas() {
                                                     placeholder="DEIXE EM BRANCO P/ AUTO"
                                                 />
                                             </div>
+                                            {adminSelectedPlan && !adminCustomKey && (
+                                                <p className="text-[10px] text-orange-500 font-bold px-1 italic">
+                                                    Será gerada como: {plans.find(p => p.id.toString() === adminSelectedPlan)?.slug.toUpperCase()}-XXXX-XXXX
+                                                </p>
+                                            )}
                                         </div>
 
                                         <Button
@@ -591,24 +645,36 @@ export default function Assinaturas() {
 
                                 {/* Keys List */}
                                 <Card className="lg:col-span-2 border-border/50 overflow-hidden shadow-sm">
-                                    <CardHeader className="flex flex-row items-center justify-between bg-muted/30 pb-4">
-                                        <div className="flex items-center gap-2">
-                                            <History className="h-5 w-5 text-muted-foreground" />
-                                            <CardTitle className="text-lg font-black">Histórico de Chaves</CardTitle>
-                                        </div>
-                                        <Button variant="ghost" size="sm" onClick={() => refetchKeys()} className="h-8 w-8 p-0 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                        <History className="h-5 w-5 text-orange-500" />
+                                        <CardTitle className="text-lg font-black">Histórico de Chaves</CardTitle>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        {keys.length > keysPerPage && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-orange-500"
+                                                onClick={() => setKeysPage(1)}
+                                                title="Voltar ao início"
+                                            >
+                                                <History className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        <Button variant="ghost" size="sm" onClick={() => refetchKeys()} className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-orange-500">
                                             <RefreshCcw className="h-4 w-4" />
                                         </Button>
-                                    </CardHeader>
+                                    </div>
                                     <CardContent className="p-0">
                                         <div className="overflow-x-auto">
                                             <Table>
                                                 <TableHeader className="bg-muted/10">
                                                     <TableRow className="hover:bg-transparent border-none">
-                                                        <TableHead className="text-[10px] font-bold uppercase tracking-widest h-10 px-6">Licença</TableHead>
-                                                        <TableHead className="text-[10px] font-bold uppercase tracking-widest h-10">Plano</TableHead>
-                                                        <TableHead className="text-[10px] font-bold uppercase tracking-widest h-10 text-center">Dias</TableHead>
-                                                        <TableHead className="text-[10px] font-bold uppercase tracking-widest h-10 text-right pr-6">Status</TableHead>
+                                                        <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6 text-muted-foreground/70">Licença</TableHead>
+                                                        <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10 text-muted-foreground/70">Plano</TableHead>
+                                                        <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10 text-center text-muted-foreground/70">Limites (O/G)</TableHead>
+                                                        <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10 text-center text-muted-foreground/70">Dias</TableHead>
+                                                        <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10 text-right pr-6 text-muted-foreground/70">Status</TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
@@ -633,6 +699,13 @@ export default function Assinaturas() {
                                                                     </TableCell>
                                                                     <TableCell>
                                                                         <Badge variant="outline" className="text-[10px] font-bold">{k.plan_name}</Badge>
+                                                                    </TableCell>
+                                                                    <TableCell className="text-center">
+                                                                        <div className="flex justify-center gap-1 font-bold text-[10px]">
+                                                                            <span className="text-blue-500">{k.operators_limit}</span>
+                                                                            <span className="text-muted-foreground">/</span>
+                                                                            <span className="text-purple-500">{k.managers_limit}</span>
+                                                                        </div>
                                                                     </TableCell>
                                                                     <TableCell className="text-center font-bold text-xs text-muted-foreground">
                                                                         {k.duration_days} d
@@ -746,7 +819,7 @@ export default function Assinaturas() {
                                             <TableRow>
                                                 <TableHead className="px-6">Plano</TableHead>
                                                 <TableHead>Preço</TableHead>
-                                                <TableHead>Limites (Prod/Oper/Whats)</TableHead>
+                                                <TableHead>Limites (Prod/Oper/Ger/Whats)</TableHead>
                                                 <TableHead>Status</TableHead>
                                                 <TableHead className="text-right pr-6">Ações</TableHead>
                                             </TableRow>
@@ -767,6 +840,7 @@ export default function Assinaturas() {
                                                         <div className="flex gap-2">
                                                             <Badge variant="outline" className="text-[10px]">{p.limits.max_products}</Badge>
                                                             <Badge variant="outline" className="text-[10px]">{p.limits.max_operators}</Badge>
+                                                            <Badge variant="outline" className="text-[10px]">{p.limits.max_managers}</Badge>
                                                             <Badge variant="outline" className="text-[10px]">{p.limits.max_whatsapp}</Badge>
                                                         </div>
                                                     </TableCell>
@@ -802,14 +876,28 @@ export default function Assinaturas() {
                                         <DialogDescription>Defina as regras e valores do plano de assinatura.</DialogDescription>
                                     </DialogHeader>
                                     <div className="grid gap-6 py-4">
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-3 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-xs font-bold uppercase tracking-wider">Nome do Plano</Label>
                                                 <Input
                                                     value={planFormData.name}
-                                                    onChange={e => setPlanFormData({ ...planFormData, name: e.target.value, slug: (e.target.value.toLowerCase().replace(/\s+/g, '-')) as any })}
+                                                    onChange={e => setPlanFormData({ ...planFormData, name: e.target.value })}
                                                     placeholder="Ex: Gold"
                                                 />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-bold uppercase tracking-wider">Identificador (Slug)</Label>
+                                                <Select value={planFormData.slug} onValueChange={val => setPlanFormData({ ...planFormData, slug: val as any })}>
+                                                    <SelectTrigger className="h-10 rounded-md bg-background border-border/50">
+                                                        <SelectValue placeholder="Selecione..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="basico">basico</SelectItem>
+                                                        <SelectItem value="pro">pro</SelectItem>
+                                                        <SelectItem value="enterprise">enterprise</SelectItem>
+                                                        <SelectItem value="free">free</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
                                             <div className="space-y-2">
                                                 <Label className="text-xs font-bold uppercase tracking-wider">Preço Mensal (R$)</Label>
@@ -830,17 +918,21 @@ export default function Assinaturas() {
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-3 gap-4 bg-muted/30 p-4 rounded-xl">
+                                        <div className="grid grid-cols-4 gap-4 bg-muted/30 p-4 rounded-xl">
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-bold uppercase">Máx. Produtos</Label>
+                                                <Label className="text-[10px] font-bold uppercase">Produtos</Label>
                                                 <Input type="number" value={planFormData.limits?.max_products} onChange={e => setPlanFormData({ ...planFormData, limits: { ...planFormData.limits!, max_products: parseInt(e.target.value) } })} />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-bold uppercase">Máx. Operadores</Label>
+                                                <Label className="text-[10px] font-bold uppercase">Operadores</Label>
                                                 <Input type="number" value={planFormData.limits?.max_operators} onChange={e => setPlanFormData({ ...planFormData, limits: { ...planFormData.limits!, max_operators: parseInt(e.target.value) } })} />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-bold uppercase">Máx. WhatsApps</Label>
+                                                <Label className="text-[10px] font-bold uppercase">Gerentes</Label>
+                                                <Input type="number" value={planFormData.limits?.max_managers} onChange={e => setPlanFormData({ ...planFormData, limits: { ...planFormData.limits!, max_managers: parseInt(e.target.value) } })} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-bold uppercase">WhatsApps</Label>
                                                 <Input type="number" value={planFormData.limits?.max_whatsapp} onChange={e => setPlanFormData({ ...planFormData, limits: { ...planFormData.limits!, max_whatsapp: parseInt(e.target.value) } })} />
                                             </div>
                                         </div>

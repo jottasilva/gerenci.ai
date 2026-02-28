@@ -1,6 +1,7 @@
 import { api } from './api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SubscriptionPlan, PlanLimits } from '@/types';
+import { toast } from 'sonner';
 export type { SubscriptionPlan, PlanLimits };
 
 export interface SubscriptionData {
@@ -67,7 +68,13 @@ export const billingService = {
         return response.data;
     },
 
-    generateKey: async (data: { plan: number; duration_days: number; key: string }): Promise<any> => {
+    generateKey: async (data: {
+        plan: number;
+        duration_days: number;
+        key: string;
+        operators_limit?: number;
+        managers_limit?: number;
+    }): Promise<any> => {
         const response = await api.post('license-keys/', data);
         return response.data;
     },
@@ -83,6 +90,11 @@ export const billingService = {
 
     renewKey: async (id: number): Promise<any> => {
         const response = await api.post(`license-keys/${id}/renew/`);
+        return response.data;
+    },
+
+    extendSubscription: async (id: number): Promise<any> => {
+        const response = await api.post(`license-keys/${id}/extend_subscription/`);
         return response.data;
     },
 
@@ -152,6 +164,20 @@ export function useRenewLicenseKey() {
         mutationFn: billingService.renewKey,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['license-keys'] });
+        }
+    });
+}
+
+export function useExtendSubscription() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: billingService.extendSubscription,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['license-keys'] });
+            toast.success('Assinatura renovada com sucesso!');
+        },
+        onError: (err: any) => {
+            toast.error(err.response?.data?.error || 'Erro ao renovar assinatura.');
         }
     });
 }

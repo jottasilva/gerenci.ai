@@ -35,7 +35,12 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         """Accept both English and Portuguese field names on write."""
-        mapped = dict(data)
+        # QueryDict.dict() returns the last value for each key, avoiding the list-of-values issue ['true']
+        if hasattr(data, 'dict'):
+            mapped = data.dict()
+        else:
+            mapped = dict(data)
+
         # Map Portuguese -> English for write operations (Portuguese takes precedence)
         if 'nome' in mapped and 'name' not in mapped:
             mapped['name'] = mapped.pop('nome')
@@ -53,6 +58,13 @@ class ProductSerializer(serializers.ModelSerializer):
         # Clean up Portuguese aliases if they were not popped
         for key in ('nome', 'preco', 'estoque', 'estoque_min', 'stock_min', 'ativo', 'categoria', 'categoria_name', 'nome_categoria'):
             mapped.pop(key, None)
+
+        # Sanitize nullable FK fields: 'none', 'null', '' -> None
+        for fk_field in ('category', 'supplier'):
+            val = mapped.get(fk_field)
+            if isinstance(val, str) and val.lower() in ('none', 'null', ''):
+                mapped[fk_field] = None
+
         return super().to_internal_value(mapped)
 
 

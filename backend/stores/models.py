@@ -1,5 +1,7 @@
 from django.db import models
 
+from core.fields import EncryptedCharField
+
 class Store(models.Model):
     name = models.CharField(max_length=255)
     logo = models.ImageField(upload_to='stores/logos/', null=True, blank=True)
@@ -9,7 +11,8 @@ class Store(models.Model):
     is_active = models.BooleanField(default=True)
 
     # Extra settings fields for Configurações page
-    cnpj = models.CharField(max_length=20, null=True, blank=True)
+    cnpj = EncryptedCharField(max_length=255, null=True, blank=True)
+
     email = models.EmailField(null=True, blank=True)
     instagram = models.CharField(max_length=100, null=True, blank=True)
     website = models.URLField(null=True, blank=True)

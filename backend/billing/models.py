@@ -8,6 +8,7 @@ class SubscriptionPlan(models.Model):
         ('basico', 'Básico'),
         ('pro', 'Pro'),
         ('enterprise', 'Enterprise'),
+        ('free', 'Free'),
     ]
 
     name = models.CharField(max_length=100)
@@ -154,6 +155,8 @@ class LicenseKey(models.Model):
     key = models.CharField(max_length=50, unique=True)
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.CASCADE)
     duration_days = models.IntegerField(default=30)
+    operators_limit = models.IntegerField(default=1, help_text='Número máximo de operadores permitidos nesta chave')
+    managers_limit = models.IntegerField(default=1, help_text='Número máximo de gerentes permitidos nesta chave')
     
     is_used = models.BooleanField(default=False)
     activated_at = models.DateTimeField(null=True, blank=True)
@@ -175,6 +178,8 @@ class LicenseKey(models.Model):
         
         # Logic to update subscription
         from billing.subscription_service import upgrade_plan_with_duration
-        upgrade_plan_with_duration(store, self.plan, self.duration_days)
+        upgrade_plan_with_duration(store, self.plan, self.duration_days, 
+                                   operators_limit=self.operators_limit,
+                                   managers_limit=self.managers_limit)
         
         return True, "Plano ativado com sucesso!"

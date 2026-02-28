@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { billingService, useGetPlans } from '@/services/billing.service';
+import { billingService, useGetPlans, useExtendSubscription } from '@/services/billing.service';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,8 +8,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Key, Plus, Copy, CheckCircle2, History, Rocket } from 'lucide-react';
+import { Key, Plus, Copy, CheckCircle2, History, Rocket, RefreshCw, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function AdminKeys() {
     const queryClient = useQueryClient();
@@ -18,6 +29,8 @@ export default function AdminKeys() {
         queryKey: ['admin-keys'],
         queryFn: billingService.getKeys
     });
+
+    const extendMutation = useExtendSubscription();
 
     const [newKeyData, setNewKeyData] = useState({
         plan: '',
@@ -176,9 +189,42 @@ export default function AdminKeys() {
                                                         </Badge>
                                                     </td>
                                                     <td className="py-3 text-right">
-                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => copyToClipboard(k.key)}>
-                                                            <Copy className="h-3.5 w-3.5" />
-                                                        </Button>
+                                                        <div className="flex justify-end gap-1">
+                                                            {k.is_used && (
+                                                                <AlertDialog>
+                                                                    <AlertDialogTrigger asChild>
+                                                                        <Button
+                                                                            size="icon"
+                                                                            variant="ghost"
+                                                                            className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                                                            disabled={extendMutation.isPending}
+                                                                        >
+                                                                            <RefreshCw className={`h-3.5 w-3.5 ${extendMutation.isPending ? 'animate-spin' : ''}`} />
+                                                                        </Button>
+                                                                    </AlertDialogTrigger>
+                                                                    <AlertDialogContent className="rounded-2xl">
+                                                                        <AlertDialogHeader>
+                                                                            <AlertDialogTitle>Renovar Assinatura?</AlertDialogTitle>
+                                                                            <AlertDialogDescription>
+                                                                                Isso irá estender a assinatura da loja associada a esta chave por mais {k.duration_days} dias.
+                                                                            </AlertDialogDescription>
+                                                                        </AlertDialogHeader>
+                                                                        <AlertDialogFooter>
+                                                                            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                                                                            <AlertDialogAction
+                                                                                className="rounded-xl bg-emerald-600 hover:bg-emerald-700"
+                                                                                onClick={() => extendMutation.mutate(k.id)}
+                                                                            >
+                                                                                Confirmar Renovação
+                                                                            </AlertDialogAction>
+                                                                        </AlertDialogFooter>
+                                                                    </AlertDialogContent>
+                                                                </AlertDialog>
+                                                            )}
+                                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => copyToClipboard(k.key)}>
+                                                                <Copy className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}

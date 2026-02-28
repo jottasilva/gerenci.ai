@@ -72,7 +72,7 @@ def can_perform(store, action):
     Central gate: checks if a store can perform an action.
     Returns (allowed: bool, reason: str, data: dict)
 
-    Actions: 'create_product', 'create_operator', 'connect_whatsapp', 'api_access',
+    Actions: 'create_product', 'create_operator', 'create_manager', 'connect_whatsapp', 'api_access',
              'advanced_reports', 'multi_store'
     """
     if store is None:
@@ -90,7 +90,9 @@ def can_perform(store, action):
 
     plan = sub.plan
     if plan is None:
-        # Trial without a plan — allow basic operations
+        # Trial without a plan — basic operations only
+        if action in ['create_operator', 'create_manager']:
+            return False, 'plan_required', {'message': 'Este recurso requer um plano ativo.'}
         return True, 'ok', {}
 
     usage = get_usage(store)
@@ -98,6 +100,7 @@ def can_perform(store, action):
     ACTION_MAP = {
         'create_product':    ('max_products',  usage.products_count),
         'create_operator':   ('max_operators', usage.operators_count),
+        'create_manager':    ('max_managers',  0), # Limit checked below
         'connect_whatsapp':  ('max_whatsapp',  usage.whatsapp_numbers_count),
         'api_access':        ('api_access',    None),
         'advanced_reports':  ('advanced_reports', None),
@@ -105,7 +108,7 @@ def can_perform(store, action):
     }
 
     if action not in ACTION_MAP:
-        return True, 'ok', {}  # Unknown action → allow
+        return True, 'ok', {}
 
     limit_key, current_count = ACTION_MAP[action]
 
@@ -120,20 +123,39 @@ def can_perform(store, action):
             }
         return True, 'ok', {}
 
-    # Numeric limit checks
+    # Special Case: Operator Limit (Plan OR Key)
     limit = plan.limits.get(limit_key, 0)
+    
+    # If using create_operator/manager, check LicenseKey limits if available
+    if action in ['create_operator', 'create_manager']:
+        # Get the latest used key for this store
+        from billing.models import LicenseKey
+        key = LicenseKey.objects.filter(store=store, is_used=True).order_from('-activated_at').first()
+        if key and key.operators_limit > limit:
+            limit = key.operators_limit
+
+    # Special Case: Manager count check
+    if action == 'create_manager':
+        from accounts.models import User
+        count = User.objects.filter(store=store, role='GERENTE', is_active=True).count()
+        current_count = count
+        
+        # Get custom limit from key if available
+        from billing.models import LicenseKey
+        key = LicenseKey.objects.filter(store=store, is_used=True).order_by('-activated_at').first()
+        if key and key.managers_limit > limit:
+            limit = key.managers_limit
+
     if limit == -1:  # Unlimited
         return True, 'ok', {}
 
     if current_count >= limit:
-        # Log limit reached event
         _log_limit_event(store, action, limit_key, current_count, limit)
         return False, 'limit_exceeded', {
             'action': action,
             'limit': limit,
             'current': current_count,
             'plan': plan.name,
-            'plan_slug': plan.slug,
             'message': f'Seu plano {plan.name} permite apenas {limit} {_label(action)}.',
         }
 
@@ -169,7 +191,7 @@ def upgrade_plan(store, new_plan_slug):
     invalidate_subscription_cache(store)
 
     # Determine if upgrade or downgrade
-    plan_order = ['basico', 'pro', 'enterprise']
+    plan_order = ['free', 'basico', 'pro', 'enterprise']
     old_idx = plan_order.index(old_slug) if old_slug in plan_order else -1
     new_idx = plan_order.index(new_plan_slug) if new_plan_slug in plan_order else -1
     event_type = 'upgraded' if new_idx >= old_idx else 'downgraded'
@@ -183,7 +205,7 @@ def upgrade_plan(store, new_plan_slug):
     return sub, 'ok'
 
 
-def upgrade_plan_with_duration(store, plan, days):
+def upgrade_plan_with_duration(store, plan, days, operators_limit=None, managers_limit=None):
     """
     Activates/upgrades a plan for a store with a specific duration in days.
     """
@@ -210,7 +232,13 @@ def upgrade_plan_with_duration(store, plan, days):
     BillingEvent.objects.create(
         store=store,
         event_type='upgraded',
-        payload={'plan': plan.slug, 'duration': days, 'method': 'license_key'}
+        payload={
+            'plan': plan.slug, 
+            'duration': days, 
+            'method': 'license_key',
+            'operators_limit': operators_limit,
+            'managers_limit': managers_limit
+        }
     )
     
     return sub, 'ok'
@@ -241,6 +269,7 @@ def _label(action):
     labels = {
         'create_product': 'produtos',
         'create_operator': 'operadores',
+        'create_manager': 'gerentes',
         'connect_whatsapp': 'números WhatsApp',
     }
     return labels.get(action, action)

@@ -28,6 +28,7 @@ class User(AbstractUser):
     operator = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_users')
     ativo = models.BooleanField(default=True)
     needs_password_setup = models.BooleanField(default=False, help_text='True se operador precisa definir senha no primeiro login')
+    profile_image = models.ImageField(upload_to='profiles/', null=True, blank=True)
 
     USERNAME_FIELD = 'whatsapp'
     REQUIRED_FIELDS = []

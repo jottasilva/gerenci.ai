@@ -3,7 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from accounts.views import UserViewSet, RegisterView, CustomTokenObtainPairView, SetupPasswordView
+from accounts.views import UserViewSet, RegisterView, CustomTokenObtainPairView, SetupPasswordView, CheckUserView
 from stores.views import StoreViewSet, StoreSettingsView
 from products.views import ProductViewSet, CategoryViewSet, StockMovementViewSet
 from customers.views import CustomerViewSet
@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/auth/register/', RegisterView.as_view(), name='register'),
     path('api/auth/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/auth/check-user/', CheckUserView.as_view(), name='check_user'),
     path('api/auth/setup-password/', SetupPasswordView.as_view(), name='setup_password'),
 
     # Store settings

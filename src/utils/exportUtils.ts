@@ -1,3 +1,6 @@
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
 /**
  * Utility to export data to CSV
  */
@@ -35,4 +38,69 @@ export const exportToCSV = (filename: string, data: any[], headers?: string[]) =
         link.click();
         document.body.removeChild(link);
     }
+};
+
+/**
+ * Utility to export data to PDF with multiple sections
+ */
+export const exportToPDF = (filename: string, sections: { title: string; data: any[]; headers: string[]; keys: string[] }[]) => {
+    const doc = new jsPDF() as any;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    sections.forEach((section, index) => {
+        if (index > 0) doc.addPage();
+
+        // Header - Dark background style
+        doc.setFillColor(3, 3, 3);
+        doc.rect(0, 0, pageWidth, 40, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text("GERENC.AI", 20, 25);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text("GESTÃO NA PALMA DA MÃO", 20, 32);
+
+        doc.setFontSize(14);
+        doc.text(section.title.toUpperCase(), pageWidth - 20, 27, { align: 'right' });
+
+        // Content
+        const tableBody = section.data.map(item => section.keys.map(key => item[key] || ''));
+
+        doc.autoTable({
+            startY: 50,
+            head: [section.headers],
+            body: tableBody,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [16, 185, 129], // primary emerald color
+                textColor: [255, 255, 255],
+                fontSize: 10,
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            bodyStyles: {
+                fontSize: 9,
+                textColor: [51, 51, 51]
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245]
+            },
+            margin: { top: 50, bottom: 20 },
+            didDrawPage: (data: any) => {
+                // Footer
+                doc.setTextColor(150, 150, 150);
+                doc.setFontSize(8);
+                const str = "Página " + doc.internal.getNumberOfPages();
+                doc.text(str, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                doc.text(new Date().toLocaleString(), 20, pageHeight - 10);
+                doc.text("desenvolvido por JRSN.SPACE", pageWidth - 20, pageHeight - 10, { align: 'right' });
+            }
+        });
+    });
+
+    doc.save(`${filename}_${new Date().toISOString().split('T')[0]}.pdf`);
 };

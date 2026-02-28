@@ -13,54 +13,40 @@ export const operatorService = {
             whatsapp: u.whatsapp,
             role: u.role,
             ativo: u.ativo,
+            profile_image: u.profile_image,
             needs_password_setup: u.needs_password_setup || false
         }));
     },
 
-    createOperator: async (operator: any): Promise<Operador> => {
-        const names = (operator.nome || '').split(' ');
-        const first_name = names[0];
-        const last_name = names.slice(1).join(' ');
-
-        const payload: any = {
-            first_name,
-            last_name,
-            login_name: operator.login_name || null,
-            whatsapp: operator.whatsapp,
-            role: operator.role,
-            ativo: operator.ativo ?? true,
-        };
-        // Only send password if provided — blank means setup on first login
-        if (operator.password) {
-            payload.password = operator.password;
-        } else {
-            payload.password = '';
+    createOperator: async (data: FormData): Promise<Operador> => {
+        // Handle name splitting if name is in FormData
+        const nome = data.get('nome') as string;
+        if (nome) {
+            const names = nome.split(' ');
+            data.append('first_name', names[0]);
+            data.append('last_name', names.slice(1).join(' '));
+            data.delete('nome');
         }
-        if (operator.horario_inicio) payload.horario_inicio = operator.horario_inicio;
-        if (operator.horario_fim) payload.horario_fim = operator.horario_fim;
 
-        const response = await api.post('users/', payload);
+        const response = await api.post('users/', data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         return response.data;
     },
 
-    updateOperator: async (operator: any): Promise<Operador> => {
-        const names = (operator.nome || '').split(' ');
-        const first_name = names[0];
-        const last_name = names.slice(1).join(' ');
+    updateOperator: async ({ id, data }: { id: string; data: FormData }): Promise<Operador> => {
+        // Handle name splitting if name is in FormData
+        const nome = data.get('nome') as string;
+        if (nome) {
+            const names = nome.split(' ');
+            data.append('first_name', names[0]);
+            data.append('last_name', names.slice(1).join(' '));
+            data.delete('nome');
+        }
 
-        const payload: any = {
-            first_name,
-            last_name,
-            login_name: operator.login_name || null,
-            whatsapp: operator.whatsapp,
-            role: operator.role,
-            ativo: operator.ativo
-        };
-        if (operator.password) payload.password = operator.password;
-        if (operator.horario_inicio) payload.horario_inicio = operator.horario_inicio;
-        if (operator.horario_fim) payload.horario_fim = operator.horario_fim;
-
-        const response = await api.patch(`users/${operator.id}/`, payload);
+        const response = await api.patch(`users/${id}/`, data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         return response.data;
     },
 

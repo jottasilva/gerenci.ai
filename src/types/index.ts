@@ -90,6 +90,13 @@ export interface Cliente {
   plano?: 'BRONZE' | 'SILVER' | 'GOLD'; // Alias
   agent_active?: boolean;
   agente_ativo?: boolean; // Alias
+
+  // LGPD Consent
+  privacy_accepted?: boolean;
+  privacy_accepted_at?: string;
+  privacy_version?: string;
+  marketing_consent?: boolean;
+  marketing_consent_at?: string;
 }
 
 export interface Operador {
@@ -102,6 +109,7 @@ export interface Operador {
   role: 'ADMIN' | 'GERENTE' | 'VENDEDOR';
   ativo?: boolean;
   is_active?: boolean;
+  profile_image?: string | null;
   store?: number | null;
 }
 
@@ -129,6 +137,7 @@ export type FormaPagamento = 'DINHEIRO' | 'PIX' | 'CARTAO_DEBITO' | 'CARTAO_CRED
 export interface PlanLimits {
   max_products: number;
   max_operators: number;
+  max_managers: number;
   max_whatsapp: number;
   advanced_reports?: boolean;
   api_access?: boolean;
@@ -142,7 +151,7 @@ export interface PlanLimits {
 export interface SubscriptionPlan {
   id: number;
   name: string;
-  slug: 'basico' | 'pro' | 'enterprise';
+  slug: 'basico' | 'pro' | 'enterprise' | 'free';
   price: number | string;
   description: string;
   is_active: boolean;

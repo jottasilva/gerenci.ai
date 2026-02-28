@@ -14,14 +14,6 @@ export const authService = {
             password: pin
         });
 
-        // Check if user needs to set up password
-        if (response.data.needs_password_setup) {
-            const error: any = new Error('needs_password_setup');
-            error.needs_password_setup = true;
-            error.whatsapp = response.data.whatsapp;
-            throw error;
-        }
-
         const { access, refresh } = response.data;
 
         // Get user profile after login
@@ -35,6 +27,11 @@ export const authService = {
         localStorage.setItem('user', JSON.stringify(user));
 
         return { user, access, refresh };
+    },
+
+    checkUser: async (whatsapp: string): Promise<{ exists: boolean; needs_setup: boolean; first_name?: string; role?: string }> => {
+        const response = await api.post('auth/check-user/', { whatsapp });
+        return response.data;
     },
 
     setupPassword: async (whatsapp: string, newPassword: string, confirmPassword: string): Promise<any> => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, ChevronRight, Loader2, FileDown, Warehouse, Truck, ShoppingBag, Check, XCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,11 +18,19 @@ import { KPICard } from '@/components/shared/KPICard';
 import { StatusBadge, PagamentoBadge } from '@/components/shared/StatusBadge';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel";
 import { useGetProducts } from '@/services/product.service';
 import { useGetOrders, useUpdateOrderStatus, useGetDashboardStats } from '@/services/order.service';
 import { useGetCustomers } from '@/services/customer.service';
 import { DashboardTutorial } from '@/components/dashboard/DashboardTutorial';
-import { exportToCSV } from '@/utils/exportUtils';
+import { exportToCSV, exportToPDF } from '@/utils/exportUtils';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { toast } from "sonner";
@@ -65,6 +73,10 @@ export default function Dashboard() {
     } catch (err) { }
   };
 
+  const [alertsApi, setAlertsApi] = useState<CarouselApi>();
+  const [topProductsApi, setTopProductsApi] = useState<CarouselApi>();
+  const [ordersApi, setOrdersApi] = useState<CarouselApi>();
+
   if (isLoadingProducts || isLoadingOrders || isLoadingCustomers || isLoadingStats) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
@@ -74,26 +86,36 @@ export default function Dashboard() {
     );
   }
 
-  const semEstoque = products.filter(p => p.stock <= 0);
-  const estoqueBaixo = products.filter(p => p.stock > 0 && p.stock <= (p.min_stock || p.stock_min || 10));
+  const semEstoque = useMemo(() => products.filter(p => p.stock <= 0), [products]);
+  const estoqueBaixo = useMemo(() => products.filter(p => p.stock > 0 && p.stock <= (p.min_stock || p.stock_min || 10)), [products]);
 
-  const kpis = stats?.kpis || {
+  const kpis = useMemo(() => stats?.kpis || {
     total_revenue: 0,
     avg_ticket: 0,
     total_orders: 0,
     total_customers: 0
-  };
+  }, [stats]);
 
-  const periodKpis = stats?.period_kpis || {
+  const periodKpis = useMemo(() => stats?.period_kpis || {
     revenue: 0,
     orders: 0,
     avg_ticket: 0
-  };
+  }, [stats]);
 
   const periodLabel = stats?.period_label || 'Hoje';
 
-  const salesByCategory = stats?.category_sales || [];
-  const topProducts = stats?.top_products || [];
+  const salesByCategory = useMemo(() => stats?.category_sales || [], [stats]);
+
+  const sortedOrders = useMemo(() => [...orders].sort((a, b) =>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  ), [orders]);
+
+  const allAlerts = useMemo(() => [
+    ...semEstoque.map(p => ({ ...p, status: 'SEM ESTOQUE', color: 'red' })),
+    ...estoqueBaixo.map(p => ({ ...p, status: `Estoque Baixo (${p.stock} un)`, color: 'orange' }))
+  ], [semEstoque, estoqueBaixo]);
+
+  const sortedTopProducts = useMemo(() => [...(stats?.top_products || [])].sort((a: any, b: any) => b.total - a.total), [stats]);
 
   const handleExport = () => {
     const reportData = [
@@ -104,7 +126,7 @@ export default function Dashboard() {
     ];
 
     // Aggregating more detailed data if needed
-    const topProdData = topProducts.map((p: any) => ({
+    const topProdData = sortedTopProducts.map((p: any) => ({
       produto: p.nome,
       total_vendas: `R$ ${p.total.toFixed(2)}`
     }));
@@ -142,9 +164,32 @@ export default function Dashboard() {
           <Button
             variant="outline"
             className="rounded-xl border-dashed font-bold h-10 px-6"
-            onClick={() => exportToCSV(stats?.daily_sales || [], 'relatorio_vendas')}
+            onClick={() => {
+              const sections = [
+                {
+                  title: 'Resumo de Estoque',
+                  data: [
+                    ...semEstoque.map(p => ({ nome: p.name || p.nome, status: 'SEM ESTOQUE', qtd: 0 })),
+                    ...estoqueBaixo.map(p => ({ nome: p.name || p.nome, status: 'BAIXO', qtd: p.stock }))
+                  ],
+                  headers: ['Produto', 'Status', 'Qtd Atual'],
+                  keys: ['nome', 'status', 'qtd']
+                },
+                {
+                  title: 'Histórico de Vendas (Período)',
+                  data: stats?.daily_sales?.map((s: any) => ({
+                    data: s.date,
+                    vendas: s.sales,
+                    valor: `R$ ${Number(s.value).toFixed(2)}`
+                  })) || [],
+                  headers: ['Data', 'Total Vendas', 'Valor Bruto'],
+                  keys: ['data', 'vendas', 'valor']
+                }
+              ];
+              exportToPDF('relatorio_gerencial', sections);
+            }}
           >
-            <Download className="mr-2 h-4 w-4" /> Exportar Relatório
+            <Download className="mr-2 h-4 w-4" /> Exportar Relatório PDF
           </Button>
         </div>
       </div>
@@ -177,57 +222,70 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Alerts/Stock */}
-        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col min-h-[300px]">
-          <h3 className="font-display font-bold text-foreground mb-4 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-destructive" /> Atenção Necessária
-          </h3>
-          <ScrollArea className="flex-1 -mx-1 px-1">
-            <div className="space-y-3">
-              {semEstoque.length > 0 || estoqueBaixo.length > 0 ? (
-                <>
-                  {semEstoque.map(p => (
-                    <div
-                      key={p.id}
-                      onClick={() => window.location.href = '/estoque'}
-                      className="p-3 rounded-xl bg-red-500/5 border border-red-500/10 flex items-center justify-between group hover:bg-red-500/10 transition-colors cursor-pointer"
-                    >
-                      <div>
-                        <p className="text-sm font-bold text-foreground group-hover:text-red-600 transition-colors">{p.name || p.nome}</p>
-                        <p className="text-[10px] text-red-600 uppercase font-bold tracking-wider">Sem Estoque</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-red-500 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
-                    </div>
-                  ))}
-                  {estoqueBaixo.map(p => (
-                    <div
-                      key={p.id}
-                      onClick={() => window.location.href = '/estoque'}
-                      className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 flex items-center justify-between group hover:bg-orange-500/10 transition-colors cursor-pointer"
-                    >
-                      <div>
-                        <p className="text-sm font-bold text-foreground group-hover:text-orange-600 transition-colors">{p.name || p.nome}</p>
-                        <p className="text-[10px] text-orange-600 uppercase font-bold tracking-wider">Estoque Baixo ({p.stock} un)</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-orange-500 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
-                    </div>
-                  ))}
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-8 opacity-40">
-                  <Package className="h-10 w-10 mb-2" />
-                  <p className="text-sm font-bold">Tudo sob controle</p>
-                  <p className="text-xs">Estoque em níveis saudáveis.</p>
+        {/* Alerts/Stock - Com Carrossel para evitar overflow */}
+        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col h-[400px]">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display font-bold text-foreground flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" /> Atenção Necessária
+            </h3>
+            {allAlerts.length > 3 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-md"
+                onClick={() => alertsApi?.scrollTo(0)}
+                title="Voltar ao início"
+              >
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              </Button>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            {allAlerts.length > 0 ? (
+              <Carousel setApi={setAlertsApi} orientation="vertical" opts={{ align: "start", loop: false }} className="w-full">
+                <CarouselContent className="h-[280px]">
+                  {Array.from({ length: Math.ceil(allAlerts.length / 3) }).map((_, slideIndex) => {
+                    const chunk = allAlerts.slice(slideIndex * 3, slideIndex * 3 + 3);
+
+                    return (
+                      <CarouselItem key={slideIndex} className="space-y-3 pt-4">
+                        {chunk.map(p => (
+                          <div
+                            key={p.id}
+                            onClick={() => window.location.href = '/estoque'}
+                            className={`p-3 rounded-xl bg-${p.color}-500/5 border border-${p.color}-500/10 flex items-center justify-between group hover:bg-${p.color}-500/10 transition-colors cursor-pointer`}
+                          >
+                            <div>
+                              <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{p.name || p.nome}</p>
+                              <p className={`text-[10px] text-${p.color}-600 uppercase font-bold tracking-wider`}>{p.status}</p>
+                            </div>
+                            <ChevronRight className={`h-4 w-4 text-${p.color}-500 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1`} />
+                          </div>
+                        ))}
+                      </CarouselItem>
+                    );
+                  })}
+                </CarouselContent>
+                <div className="flex justify-end gap-2 mt-4">
+                  <CarouselPrevious className="static translate-y-0" />
+                  <CarouselNext className="static translate-y-0" />
                 </div>
-              )}
-            </div>
-          </ScrollArea>
+              </Carousel>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center p-8 opacity-40">
+                <Package className="h-10 w-10 mb-2" />
+                <p className="text-sm font-bold">Tudo sob controle</p>
+                <p className="text-xs">Estoque em níveis saudáveis.</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Sales by Category */}
-        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 lg:col-span-2">
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 lg:col-span-2 h-[400px] flex flex-col">
           <h3 className="font-display font-bold text-foreground mb-6">Faturamento por Categoria</h3>
-          <div className="h-[260px] w-full">
+          <div className="flex-1 w-full min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={salesByCategory}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
@@ -245,58 +303,120 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <h3 className="font-display font-bold text-foreground mb-6">Produtos Mais Vendidos</h3>
-          <div className="space-y-5">
-            {topProducts.length > 0 ? topProducts.map((p: any, i: number) => (
-              <div key={p.id} className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center font-bold">{i + 1}</div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-end mb-1">
-                    <p className="text-sm font-bold">{p.nome}</p>
-                    <p className="text-xs font-bold">R$ {p.total.toFixed(2).replace('.', ',')}</p>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                    <div className="bg-primary h-full" style={{ width: `${(p.total / topProducts[0].total) * 100}%` }} />
-                  </div>
+        {/* Top Products Carousel */}
+        <div className="rounded-2xl border border-border bg-card p-5 h-[400px] flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-display font-bold text-foreground">Produtos Mais Vendidos</h3>
+            {sortedTopProducts.length > 5 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-md"
+                onClick={() => topProductsApi?.scrollTo(0)}
+                title="Voltar ao início"
+              >
+                <TrendingUp className="h-3 w-3 text-primary" />
+              </Button>
+            )}
+          </div>
+          <div className="flex-1 overflow-hidden">
+            {sortedTopProducts.length > 0 ? (
+              <Carousel setApi={setTopProductsApi} orientation="vertical" opts={{ align: "start", loop: false }} className="w-full">
+                <CarouselContent className="h-[280px]">
+                  {Array.from({ length: Math.ceil(sortedTopProducts.length / 5) }).map((_, slideIndex) => {
+                    const chunk = sortedTopProducts.slice(slideIndex * 5, slideIndex * 5 + 5);
+                    return (
+                      <CarouselItem key={slideIndex} className="space-y-4 pt-4">
+                        {chunk.map((p: any, i: number) => (
+                          <div key={p.id} className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center font-bold text-xs">{(slideIndex * 5) + i + 1}</div>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-end mb-1">
+                                <p className="text-sm font-bold truncate max-w-[150px]">{p.nome}</p>
+                                <p className="text-xs font-bold whitespace-nowrap">R$ {p.total.toFixed(2).replace('.', ',')}</p>
+                              </div>
+                              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-primary h-full transition-all duration-1000" style={{ width: `${(p.total / sortedTopProducts[0].total) * 100}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </CarouselItem>
+                    );
+                  })}
+                </CarouselContent>
+                <div className="flex justify-end gap-2 mt-4">
+                  <CarouselPrevious className="static translate-y-0" />
+                  <CarouselNext className="static translate-y-0" />
                 </div>
-              </div>
-            )) : (
+              </Carousel>
+            ) : (
               <p className="text-center text-muted-foreground py-10">Nenhuma venda registrada ainda.</p>
             )}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
-          <div className="p-5 border-b border-border bg-muted/5">
+        {/* Last Orders Carousel */}
+        <div className="rounded-2xl border border-border bg-card h-[400px] flex flex-col overflow-hidden">
+          <div className="p-5 border-b border-border bg-muted/5 flex items-center justify-between">
             <h3 className="font-display font-bold text-foreground">Últimos Pedidos</h3>
+            {sortedOrders.length > 5 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-md"
+                onClick={() => ordersApi?.scrollTo(0)}
+                title="Voltar ao início"
+              >
+                <ShoppingCart className="h-3 w-3 text-primary" />
+              </Button>
+            )}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border bg-muted/10 text-muted-foreground">
-                  <th className="text-left py-3 px-4">CLIENTE</th>
-                  <th className="text-right py-3 px-4">TOTAL</th>
-                  <th className="text-left py-3 px-4">STATUS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.slice(0, 5).map(p => (
-                  <tr
-                    key={p.id}
-                    onClick={() => {
-                      setSelectedOrder(p);
-                      setIsOrderDetailOpen(true);
-                    }}
-                    className="border-b border-border/50 hover:bg-primary/5 cursor-pointer transition-colors"
-                  >
-                    <td className="py-3 px-4 font-bold">{p.cliente_name || p.cliente_name_manual || 'Balcão'}</td>
-                    <td className="py-3 px-4 text-right font-bold">R$ {parseFloat(p.total.toString()).toFixed(2).replace('.', ',')}</td>
-                    <td className="py-3 px-4 text-right"><StatusBadge status={p.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex-1 overflow-hidden">
+            {sortedOrders.length > 0 ? (
+              <Carousel setApi={setOrdersApi} orientation="vertical" opts={{ align: "start", loop: false }} className="w-full h-full px-5">
+                <CarouselContent className="h-[260px]">
+                  {Array.from({ length: Math.ceil(sortedOrders.length / 5) }).map((_, slideIndex) => {
+                    const chunk = sortedOrders.slice(slideIndex * 5, slideIndex * 5 + 5);
+                    return (
+                      <CarouselItem key={slideIndex} className="pt-2">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-border text-muted-foreground">
+                              <th className="text-left py-2">CLIENTE</th>
+                              <th className="text-right py-2">TOTAL</th>
+                              <th className="text-right py-2">STATUS</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {chunk.map(p => (
+                              <tr
+                                key={p.id}
+                                onClick={() => {
+                                  setSelectedOrder(p);
+                                  setIsOrderDetailOpen(true);
+                                }}
+                                className="border-b border-border/50 hover:bg-primary/5 cursor-pointer transition-colors"
+                              >
+                                <td className="py-2 font-bold">{p.cliente_name || p.cliente_name_manual || 'Balcão'}</td>
+                                <td className="py-2 text-right font-bold">R$ {parseFloat(p.total.toString()).toFixed(2).replace('.', ',')}</td>
+                                <td className="py-2 text-right"><StatusBadge status={p.status} /></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </CarouselItem>
+                    );
+                  })}
+                </CarouselContent>
+                <div className="flex justify-end gap-2 p-4 border-t border-border mt-auto">
+                  <CarouselPrevious className="static translate-y-0" />
+                  <CarouselNext className="static translate-y-0" />
+                </div>
+              </Carousel>
+            ) : (
+              <p className="text-center text-muted-foreground py-10">Nenhum pedido encontrado.</p>
+            )}
           </div>
         </div>
       </div>

@@ -53,12 +53,21 @@ export const productService = {
     updateProduct: async (product: any): Promise<Produto> => {
         // WHITELIST: Only these fields are writable on the backend
         const writableFields = ['name', 'sku', 'category', 'price', 'cost_price', 'stock', 'min_stock', 'is_active', 'supplier', 'description'];
+        // Nullable FK fields — send empty string to clear, never send 'none'/'null'
+        const nullableFkFields = ['category', 'supplier'];
         const formData = new FormData();
         for (const key of writableFields) {
             let value = product[key];
             // Map stock_min -> min_stock
             if (key === 'min_stock' && value === undefined) value = product['stock_min'];
-            if (value !== null && value !== undefined) {
+            // Clean nullable FK values: convert 'none'/'null'/null to empty string (tells DRF to clear)
+            if (nullableFkFields.includes(key)) {
+                if (value === null || value === 'none' || value === 'null') {
+                    formData.append(key, '');  // DRF accepts '' for nullable FK
+                    continue;
+                }
+            }
+            if (value !== null && value !== undefined && value !== '') {
                 formData.append(key, String(value));
             }
         }

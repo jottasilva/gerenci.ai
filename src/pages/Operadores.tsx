@@ -86,12 +86,22 @@ export default function Operadores() {
     }
 
     try {
+      const data = new FormData();
+      Object.keys(formData).forEach(key => {
+        if (key === 'profile_image_preview') return;
+        if (key === 'profile_image_file' && formData[key]) {
+          data.append('profile_image', formData[key]);
+        } else if (key === 'password' && !formData[key]) {
+          // Skip empty password on edit
+        } else if (formData[key] !== undefined && formData[key] !== null && key !== 'profile_image') {
+          data.append(key, String(formData[key]));
+        }
+      });
+
       if (editingOperator) {
-        const payload: any = { ...editingOperator, ...formData };
-        if (!payload.password) delete payload.password;
-        await updateMutation.mutateAsync(payload as Operador);
+        await updateMutation.mutateAsync({ id: editingOperator.id, data } as any);
       } else {
-        await createMutation.mutateAsync(formData as Omit<Operador, 'id'>);
+        await createMutation.mutateAsync(data as any);
       }
       setIsDialogOpen(false);
     } catch (err) { }
@@ -125,8 +135,12 @@ export default function Operadores() {
         {operators.map(op => (
           <div key={op.id} className="rounded-2xl border border-border bg-card p-5 hover:border-primary/20 hover:-translate-y-0.5 transition-all relative group">
             <div className="flex items-center gap-3 mb-3">
-              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-                {(op.nome || '?')[0]?.toUpperCase()}
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-lg overflow-hidden border border-primary/20">
+                {op.profile_image ? (
+                  <img src={op.profile_image.startsWith?.('http') ? op.profile_image : `${import.meta.env.VITE_API_URL}${op.profile_image}`} className="h-full w-full object-cover" alt={op.nome} />
+                ) : (
+                  (op.nome || '?')[0]?.toUpperCase()
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
@@ -188,6 +202,41 @@ export default function Operadores() {
                   </div>
                   <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Dados do Operador</h3>
                 </div>
+
+                <div className="flex flex-col items-center gap-4 mb-6 pt-2">
+                  <div className="relative group cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
+                    <div className="h-24 w-24 rounded-full border-2 border-dashed border-primary/30 flex items-center justify-center overflow-hidden bg-muted/30 group-hover:border-primary transition-all">
+                      {formData.profile_image_preview ? (
+                        <img src={formData.profile_image_preview} className="h-full w-full object-cover" alt="Preview" />
+                      ) : formData.profile_image ? (
+                        <img src={formData.profile_image.startsWith?.('http') ? formData.profile_image : `${import.meta.env.VITE_API_URL}${formData.profile_image}`} className="h-full w-full object-cover" alt="Profile" />
+                      ) : (
+                        <Plus className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                      )}
+                    </div>
+                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Plus className="h-6 w-6 text-white" />
+                    </div>
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setFormData({ ...formData, profile_image_file: file, profile_image_preview: reader.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Foto de Perfil</p>
+                </div>
+
                 <div className="space-y-3 pl-9">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-muted-foreground">Nome Completo *</Label>

@@ -77,6 +77,26 @@ class SetupPasswordView(APIView):
             'success': True
         })
 
+class CheckUserView(APIView):
+    """Check if user exists and their setup status before full login."""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        whatsapp = request.data.get('whatsapp', '')
+        if not whatsapp:
+            return Response({'detail': 'WhatsApp é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            user = User.objects.get(whatsapp=whatsapp)
+            return Response({
+                'exists': True,
+                'needs_setup': user.needs_password_setup or not user.has_usable_password(),
+                'first_name': user.first_name,
+                'role': user.role
+            })
+        except User.DoesNotExist:
+            return Response({'exists': False, 'needs_setup': False})
+
 class UserViewSet(MultiTenantViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -135,8 +155,6 @@ class UserViewSet(MultiTenantViewSet):
         config = get_user_service_hours(user.whatsapp)
         return Response(config)
 
-    def perform_create(self, serializer):
-        serializer.save(store=self.request.user.store)
 
     def create(self, request, *args, **kwargs):
         # Feature gate: check operator limit before creating
