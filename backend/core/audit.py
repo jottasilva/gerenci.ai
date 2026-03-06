@@ -31,7 +31,7 @@ def sanitize_for_log(text: str) -> str:
     return text
 
 
-def log_data_access(request, action, resource_type, resource_id='', details=None):
+def log_data_access(request, action, resource_type, resource_id='', details=None, user=None):
     """
     Registra acesso a dados pessoais no DataAccessLog.
     Usar em views que manipulam dados de Customer, User, etc.
@@ -39,7 +39,7 @@ def log_data_access(request, action, resource_type, resource_id='', details=None
     try:
         from core.models import DataAccessLog
         DataAccessLog.objects.create(
-            user=request.user if request.user.is_authenticated else None,
+            user=user or (request.user if request.user.is_authenticated else None),
             action=action,
             resource_type=resource_type,
             resource_id=str(resource_id),

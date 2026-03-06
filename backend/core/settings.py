@@ -11,7 +11,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ─── SECURITY (LGPD Art. 46) ────────────────────────────────────────────
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'INSECURE-dev-only-change-in-production')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'host.docker.internal']
+INTERNAL_API_SECRET = os.environ.get('INTERNAL_API_SECRET', 'INSECURE-dev-only-n8n-secret')
+ALLOWED_INTERNAL_IPS = os.environ.get('ALLOWED_INTERNAL_IPS', '127.0.0.1,localhost').split(',')
+
 
 # Encryption key for sensitive fields (CPF, CNPJ, etc.)
 ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'INSECURE-dev-only-change-in-production')
@@ -38,6 +41,7 @@ INSTALLED_APPS = [
     'customers',
     'billing',
     'suppliers',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -70,11 +74,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
+import dj_database_url
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:////{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600,
+    )
 }
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -105,12 +111,20 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Gerenc.AI API',
+    'DESCRIPTION': 'Documentação da API do Gerenc.AI',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
 
 # ─── JWT (LGPD — minimize token exposure) ────────────────────────────────
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),    # Antes: 24h → agora: 30min
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),       # Antes: 7d  → agora: 1d
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=12),      # 12 horas conforme pedido
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),       # 7 dias
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),

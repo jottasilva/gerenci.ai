@@ -29,6 +29,7 @@ import {
 import { useGetProducts } from '@/services/product.service';
 import { useGetOrders, useUpdateOrderStatus, useGetDashboardStats } from '@/services/order.service';
 import { useGetCustomers } from '@/services/customer.service';
+import { useStoreContext } from '@/contexts/StoreContext';
 import { DashboardTutorial } from '@/components/dashboard/DashboardTutorial';
 import { exportToCSV, exportToPDF } from '@/utils/exportUtils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -39,6 +40,7 @@ import { Pedido, StatusPedido } from '@/types';
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function Dashboard() {
+  const { selectedStoreId } = useStoreContext();
   const [period, setPeriod] = useState('diario');
   const { data: products = [], isLoading: isLoadingProducts } = useGetProducts();
   const { data: orders = [], isLoading: isLoadingOrders } = useGetOrders();
@@ -164,32 +166,33 @@ export default function Dashboard() {
           <Button
             variant="outline"
             className="rounded-xl border-dashed font-bold h-10 px-6"
-            onClick={() => {
-              const sections = [
-                {
-                  title: 'Resumo de Estoque',
-                  data: [
-                    ...semEstoque.map(p => ({ nome: p.name || p.nome, status: 'SEM ESTOQUE', qtd: 0 })),
-                    ...estoqueBaixo.map(p => ({ nome: p.name || p.nome, status: 'BAIXO', qtd: p.stock }))
-                  ],
-                  headers: ['Produto', 'Status', 'Qtd Atual'],
-                  keys: ['nome', 'status', 'qtd']
-                },
-                {
-                  title: 'Histórico de Vendas (Período)',
-                  data: stats?.daily_sales?.map((s: any) => ({
-                    data: s.date,
-                    vendas: s.sales,
-                    valor: `R$ ${Number(s.value).toFixed(2)}`
-                  })) || [],
-                  headers: ['Data', 'Total Vendas', 'Valor Bruto'],
-                  keys: ['data', 'vendas', 'valor']
-                }
-              ];
-              exportToPDF('relatorio_gerencial', sections);
+            onClick={async () => {
+              try {
+                const response = await api.get('reports/pdf/', {
+                  responseType: 'blob',
+                  params: {
+                    period: period,
+                    store_id: selectedStoreId
+                  }
+                });
+
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                link.setAttribute('download', `relatorio_${period}_${timestamp}.pdf`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                toast.success("Relatório gerado com sucesso!");
+              } catch (err) {
+                toast.error("Erro ao gerar relatório no servidor.");
+                console.error(err);
+              }
             }}
           >
             <Download className="mr-2 h-4 w-4" /> Exportar Relatório PDF
+            {isLoadingStats && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
           </Button>
         </div>
       </div>

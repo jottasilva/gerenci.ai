@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 /**
  * Utility to export data to CSV
@@ -70,7 +70,7 @@ export const exportToPDF = (filename: string, sections: { title: string; data: a
         // Content
         const tableBody = section.data.map(item => section.keys.map(key => item[key] || ''));
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: 50,
             head: [section.headers],
             body: tableBody,

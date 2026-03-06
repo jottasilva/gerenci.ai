@@ -103,6 +103,26 @@ export default function Pedidos() {
     endereco: ''
   });
 
+  const [isCustomProductOpen, setIsCustomProductOpen] = useState(false);
+  const [customProduct, setCustomProduct] = useState({ name: 'Produto Avulso', price: 0, quantity: 1 });
+
+  const handleAddCustomToCart = () => {
+    if (!customProduct.name || customProduct.price <= 0 || customProduct.quantity <= 0) {
+      toast.error('Preencha os dados do item avulso corretamente');
+      return;
+    }
+    setCart([...cart, {
+      product: 'avulso-' + Date.now(),
+      product_name: customProduct.name,
+      quantity: customProduct.quantity,
+      unit_price: customProduct.price,
+      subtotal: customProduct.quantity * customProduct.price
+    } as ItemPedido]);
+    setIsCustomProductOpen(false);
+    setCustomProduct({ name: 'Produto Avulso', price: 0, quantity: 1 });
+    toast.success('Item avulso adicionado ao carrinho!');
+  };
+
   const [cartApi, setCartApi] = useState<CarouselApi>();
   const [pdvApi, setPdvApi] = useState<CarouselApi>();
 
@@ -619,6 +639,14 @@ export default function Pedidos() {
                         className="pl-9 bg-muted/30 border-none transition-all focus-visible:ring-primary/20 rounded-xl"
                       />
                     </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsCustomProductOpen(true)}
+                      className="h-9 px-4 rounded-xl border-border bg-card whitespace-nowrap hover:bg-primary/5 hover:text-primary transition-colors"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Item Avulso
+                    </Button>
                     {/* Scroll to start button */}
                     {filteredProducts.length > PDV_PER_PAGE && (
                       <Button
@@ -1627,6 +1655,62 @@ export default function Pedidos() {
               <Share2 className="h-6 w-6" /> COMPARTILHAR JPG
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Item Avulso */}
+      <Dialog open={isCustomProductOpen} onOpenChange={setIsCustomProductOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="font-display font-bold text-xl text-primary flex items-center gap-2">
+              <Package className="h-5 w-5" /> Item Avulso
+            </DialogTitle>
+            <DialogDescription>
+              Adicione um item manual sem cadastro ao carrinho.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Descrição</Label>
+              <Input
+                value={customProduct.name}
+                onChange={e => setCustomProduct({ ...customProduct, name: e.target.value })}
+                className="h-12 rounded-xl bg-muted/30 border-none"
+                placeholder="Ex: Serviço extra"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Preço Unitário</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">R$</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={customProduct.price}
+                    onChange={e => setCustomProduct({ ...customProduct, price: parseFloat(e.target.value) || 0 })}
+                    className="h-12 pl-10 rounded-xl bg-muted/30 border-none font-bold"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quantidade</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={customProduct.quantity}
+                  onChange={e => setCustomProduct({ ...customProduct, quantity: parseInt(e.target.value) || 1 })}
+                  className="h-12 rounded-xl bg-muted/30 border-none font-bold"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="mt-6 flex gap-2">
+            <Button variant="ghost" className="flex-1 h-12 rounded-xl" onClick={() => setIsCustomProductOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAddCustomToCart} className="flex-1 h-12 rounded-xl font-bold bg-primary text-white shadow-lg shadow-primary/20">
+              Adicionar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

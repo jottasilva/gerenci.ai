@@ -15,6 +15,9 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(whatsapp, password, **extra_fields)
 
+from django.utils import timezone
+from datetime import timedelta
+
 class User(AbstractUser):
     username = None
     whatsapp = models.CharField(max_length=20, primary_key=True)
@@ -29,11 +32,19 @@ class User(AbstractUser):
     ativo = models.BooleanField(default=True)
     needs_password_setup = models.BooleanField(default=False, help_text='True se operador precisa definir senha no primeiro login')
     profile_image = models.ImageField(upload_to='profiles/', null=True, blank=True)
+    
+    # Session Persistence
+    session_token = models.TextField(null=True, blank=True, help_text='Token JWT da sessão atual')
+    token_expires_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = 'whatsapp'
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+    
+    class Meta:
+        verbose_name = 'Usuário'
+        verbose_name_plural = 'Usuários'
 
     def __str__(self):
         return f"{self.first_name} ({self.whatsapp})"

@@ -227,11 +227,11 @@ class OrderViewSet(MultiTenantViewSet):
         today_date = now.date()
 
         if period == 'mensal':
-            period_start = today_date.replace(day=1)  # First day of current month
+            period_start = today_date - timedelta(days=30)  # Últimos 30 dias
         elif period == 'semanal':
-            period_start = today_date - timedelta(days=6)  # Last 7 days
+            period_start = today_date - timedelta(days=7)   # Últimos 7 dias
         else:  # diario
-            period_start = today_date  # Today only
+            period_start = today_date  # Somente hoje
 
         # Period-filtered query for KPIs, category, top products
         period_query = base_query.filter(created_at__date__gte=period_start)
@@ -257,13 +257,17 @@ class OrderViewSet(MultiTenantViewSet):
 
             daily_sales_data = []
             months_br = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+            curr_d = today_date.replace(day=1)
             for i in range(6):
-                d = (today_date - timedelta(days=30*i)).replace(day=1)
+                d = curr_d
                 res = next((item for item in sales_qs if (item['date'].date() if hasattr(item['date'], 'date') else item['date']) == d), None)
                 daily_sales_data.insert(0, {
                     'dia': f"{months_br[d.month-1]}/{str(d.year)[2:]}",
                     'vendas': float(res['vendas']) if res else 0.0
                 })
+                # Retroceder um mês corretamente
+                prev_month = d - timedelta(days=1)
+                curr_d = prev_month.replace(day=1)
 
         elif period == 'semanal':
             chart_start = today_date - timedelta(days=28)
@@ -343,8 +347,8 @@ class OrderViewSet(MultiTenantViewSet):
         # Period label for frontend
         period_labels = {
             'diario': 'Hoje',
-            'semanal': 'Esta Semana',
-            'mensal': 'Este Mês'
+            'semanal': 'Últimos 7 dias',
+            'mensal': 'Últimos 30 dias'
         }
 
         return Response({

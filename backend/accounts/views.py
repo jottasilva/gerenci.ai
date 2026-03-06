@@ -30,7 +30,22 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         except User.DoesNotExist:
             pass  # Let the parent handle the 401
         
-        return super().post(request, *args, **kwargs)
+        response = super().post(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            # Save token to database
+            access_token = response.data.get('access')
+            user.session_token = access_token
+            user.token_expires_at = timezone.now() + timedelta(hours=12)
+            user.save()
+            
+            from core.audit import log_data_access
+            log_data_access(request, 'LOGIN', 'user', whatsapp, user=user)
+            
+        return response
 
 
 class SetupPasswordView(APIView):
@@ -197,3 +212,68 @@ class RegisterView(generics.CreateAPIView):
 
         headers = self.get_success_headers(serializer.data)
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED, headers=headers)
+
+class GetSessionTokenView(APIView):
+    """
+    Internal route for n8n to retrieve a user's active session token.
+    Requires X-Internal-Secret header.
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        from django.conf import settings
+        from django.utils import timezone
+        
+        # 0. IP Whitelisting Check
+        ip = request.META.get('HTTP_X_FORWARDED_FOR')
+        if ip:
+            ip = ip.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+            
+        if ip not in settings.ALLOWED_INTERNAL_IPS and '*' not in settings.ALLOWED_INTERNAL_IPS:
+            return Response({'detail': f'Acesso negado: IP {ip} não autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        # 1. Security Check
+        provided_secret = request.headers.get('X-Internal-Secret')
+        if not provided_secret or provided_secret != settings.INTERNAL_API_SECRET:
+            return Response({'detail': 'Acesso negado: Segredo interno inválido.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        # 2. Get User
+        whatsapp = request.data.get('whatsapp')
+        with open('debug_whatsapp.log', 'a') as f:
+            f.write(f"DEBUG: Received whatsapp: {whatsapp}\n")
+            
+        if not whatsapp:
+            return Response({'detail': 'WhatsApp é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            user = User.objects.get(whatsapp=whatsapp)
+        except User.DoesNotExist:
+            with open('debug_whatsapp.log', 'a') as f:
+                f.write(f"DEBUG: User not found for {whatsapp}, trying fallback\n")
+            # Fallback: se começar com 55, tenta sem o prefixo
+            if whatsapp.startswith('55') and len(whatsapp) >= 12:
+                try:
+                    user = User.objects.get(whatsapp=whatsapp[2:])
+                    with open('debug_whatsapp.log', 'a') as f:
+                        f.write(f"DEBUG: Found user with fallback: {user.whatsapp}\n")
+                except User.DoesNotExist:
+                    with open('debug_whatsapp.log', 'a') as f:
+                        f.write(f"DEBUG: User not found even with fallback for {whatsapp}\n")
+                    return Response({'detail': 'Usuário não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'detail': 'Usuário não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        # 3. Validate Token
+        if not user.session_token or not user.token_expires_at:
+            return Response({'detail': 'Nenhuma sessão ativa encontrada para este usuário.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        if user.token_expires_at < timezone.now():
+            return Response({'detail': 'O token de sessão deste usuário expirou.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        return Response({
+            'whatsapp': user.whatsapp,
+            'session_token': user.session_token,
+            'expires_at': user.token_expires_at
+        })
