@@ -5,3 +5,4 @@ djangorestframework-simplejwt
 Pillow
 python-dotenv
 cryptography
+gunicorn
