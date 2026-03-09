@@ -101,7 +101,16 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+UNFOLD = {
+    "SITE_TITLE": "Gerenci.AI",
+    "SITE_HEADER": "Gerenci.AI Admin",
+    "SITE_SYMBOL": "dashboard",
 
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": False,
+
+    "THEME": "dark",
+}
 # ─── DRF ─────────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
