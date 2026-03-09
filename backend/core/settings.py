@@ -133,7 +133,7 @@ SIMPLE_JWT = {
 
 # ─── CORS (LGPD Art. 46 — minimize attack surface) ──────────────────────
 CORS_ALLOWED_ORIGINS = os.environ.get(
-    'CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173'
+    'CORS_ORIGINS', 'http://localhost:8888,http://127.0.0.1:8888'
 ).split(',')
 CORS_ALLOW_ALL_ORIGINS = False  # NUNCA True em produção
 

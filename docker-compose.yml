@@ -26,7 +26,7 @@ services:
       DJANGO_DEBUG: "True"
       DATABASE_URL: "postgres://gerencai_user:gerencai_password@db:5432/gerencai"
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,backend,frontend"
-      CORS_ORIGINS: "http://localhost:8080,http://127.0.0.1:8080"
+      CORS_ORIGINS: "http://localhost:8888,http://127.0.0.1:8888"
       REDIS_URL: "redis://redis:6379/0"
       ENCRYPTION_KEY: "lgpd-MUDE-ESTA-CHAVE-EM-PRODUCAO-gere-uma-nova-32chars"
     volumes:
@@ -39,13 +39,13 @@ services:
       redis:
         condition: service_started
     ports:
-      - "8000:8000"
+      - "9999:9999"
 
   frontend:
     build:
       context: .
     ports:
-      - "8080:80"
+      - "8888:80"
     depends_on:
       - backend
 
