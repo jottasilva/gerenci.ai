@@ -25,7 +25,7 @@ services:
       DJANGO_SECRET_KEY: "change-me-in-production"
       DJANGO_DEBUG: "True"
       DATABASE_URL: "postgres://gerencai_user:gerencai_password@db:5432/gerencai"
-      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,backend,frontend"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,backend,frontend,gerenciadmin.ogerente.site,gerencia.ogerente.site"
       CORS_ORIGINS: "http://localhost:8888,http://127.0.0.1:8888,https://gerencia.ogerente.site"
       REDIS_URL: "redis://redis:6379/0"
       ENCRYPTION_KEY: "lgpd-MUDE-ESTA-CHAVE-EM-PRODUCAO-gere-uma-nova-32chars"
@@ -54,4 +54,5 @@ volumes:
   redis_data:
   static_volume:
   media_volume:
+
 
