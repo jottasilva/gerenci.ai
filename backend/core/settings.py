@@ -11,11 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ─── SECURITY (LGPD Art. 46) ────────────────────────────────────────────
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'INSECURE-dev-only-change-in-production')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
-ALLOWED_HOSTS = [
-    "gerenciadmin.ogerente.site",
-    "123.45.67.89",
-]
-
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
 ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'INSECURE-dev-only-change-in-production')
 
 INSTALLED_APPS = [
