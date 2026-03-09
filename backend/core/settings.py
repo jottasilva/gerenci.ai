@@ -13,7 +13,10 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'INSECURE-dev-only-change-in-pr
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
 ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'INSECURE-dev-only-change-in-production')
-
+CSRF_TRUSTED_ORIGINS = [
+    "https://gerencia.ogerente.site",
+    "https://gerenciadmin.ogerente.site",
+]
 INSTALLED_APPS = [
     'unfold',
     'django.contrib.admin',
