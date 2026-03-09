@@ -13,8 +13,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'INSECURE-dev-only-change-in-pr
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
 ALLOWED_HOSTS = [
     "gerenciadmin.ogerente.site",
-    "localhost",
-    "127.0.0.1",
+    "123.45.67.89",
 ]
 
 ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'INSECURE-dev-only-change-in-production')
