@@ -45,7 +45,7 @@ services:
     build:
       context: .
     ports:
-      - "8888:80"
+      - "8888:8888"
     depends_on:
       - backend
 
@@ -54,3 +54,4 @@ volumes:
   redis_data:
   static_volume:
   media_volume:
+
