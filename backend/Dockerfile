@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libwebp-dev \
   libpng-dev \
   netcat-traditional \
+  dos2unix \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
@@ -24,23 +25,8 @@ COPY . .
 
 RUN mkdir -p /app/static /app/media
 
-COPY <<EOF /start.sh
-#!/bin/sh
-set -e
-
-echo "Waiting for postgres..."
-while ! nc -z db 5432; do
-  sleep 0.1
-done
-echo "PostgreSQL started"
-
-python manage.py migrate --noinput
-python manage.py collectstatic --noinput
-
-gunicorn core.wsgi:application --bind 0.0.0.0:9999 --workers 3
-EOF
-
-RUN chmod +x /start.sh
+COPY start.sh /start.sh
+RUN dos2unix /start.sh && chmod +x /start.sh
 
 EXPOSE 9999
 
