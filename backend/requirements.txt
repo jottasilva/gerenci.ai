@@ -25,6 +25,7 @@ djangorestframework_simplejwt==5.5.1
 draftjs_exporter==5.2.0
 drf-spectacular==0.29.0
 drf-yasg==1.21.11
+whitenoise==6.9.0
 et_xmlfile==2.0.0
 filetype==1.2.0
 idna==3.11
@@ -61,4 +62,5 @@ uritemplate==4.2.0
 urllib3==2.6.2
 wagtail==7.2.1
 Willow==1.12.0
+
 
