@@ -20,20 +20,10 @@ RUN pip install --no-cache-dir gunicorn
 
 COPY . .
 
-RUN mkdir -p /app/static /app/media
+RUN mkdir -p /app/staticfiles /app/media
 
-COPY <<EOF /start.sh
-#!/bin/sh
-set -e
-
-python manage.py migrate --noinput
-python manage.py collectstatic --noinput
-
-gunicorn core.wsgi:application --bind 0.0.0.0:9999 --workers 3
-EOF
-
-RUN chmod +x /start.sh
+RUN chmod +x /app/start.sh
 
 EXPOSE 9999
 
-ENTRYPOINT ["/start.sh"]
+ENTRYPOINT ["/app/start.sh"]
