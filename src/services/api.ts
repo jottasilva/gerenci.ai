@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Using relative path to utilize Vite's proxy in dev, and NGINX config in prod.
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = 'https://gerenciadmin.ogerente.site/api';
 
 export const api = axios.create({
     baseURL: API_URL,
