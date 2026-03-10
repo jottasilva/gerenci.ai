@@ -1,8 +1,9 @@
 import { useState, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
 import {
-  Plus, Search, MoreHorizontal, Check, Clock, Truck, XCircle,
+  Plus, Search, MoreHorizontal, Check, Clock, Truck, XCircle, Pencil,
   Package, ShoppingCart, Trash2, Minus, User, CreditCard, Banknote,
   QrCode, AlertTriangle, History, UserCog, Warehouse, Filter, ShoppingBag, Loader2, Calendar,
   Mail, MapPin, Download, Share2, ChevronLeft, ChevronRight, Receipt, Tag, ArrowUp, ArrowDown
@@ -57,6 +58,7 @@ export default function Pedidos() {
   const { data: orders = [], isLoading: isLoadingOrders } = useGetOrders();
   const { data: store } = useGetStore();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const createOrderMutation = useCreateOrder();
   const createCustomerMutation = useCreateCustomer();
   const updateStatusMutation = useUpdateOrderStatus();
@@ -161,7 +163,7 @@ export default function Pedidos() {
   }), [orders, search, statusFilter]);
 
   const addToCart = (product: Produto) => {
-    const stockActual = product.estoque ?? product.stock;
+    const stockActual = Number(product.estoque ?? product.stock ?? 0);
     const price = Number(product.price);
     const existing = cart.find(item => item.product === product.id);
 
@@ -188,11 +190,17 @@ export default function Pedidos() {
         subtotal: price
       } as ItemPedido]);
     }
+
+    toast.success(`${product.nome || product.name} adicionado!`, {
+      icon: <ShoppingCart className="h-4 w-4" />,
+      duration: 2000,
+      position: 'bottom-right'
+    });
   };
 
   const updateQuantity = (productId: string, delta: number) => {
     const product = products.find(p => p.id === productId);
-    const stockActual = product?.estoque ?? product?.stock ?? 9999;
+    const stockActual = product ? Number(product.estoque ?? product.stock ?? 0) : 9999;
 
     setCart(cart.map(item => {
       if (item.product === productId) {
@@ -355,70 +363,46 @@ export default function Pedidos() {
 
     <div className="flex-1 overflow-hidden relative group px-4 py-2">
       {cart.length > 0 ? (
-        <Carousel
-          orientation="vertical"
-          opts={{ align: "start" }}
-          setApi={setCartApi}
-          className="w-full h-full max-h-[50vh]"
-        >
-          <CarouselContent className="-mt-1 h-[45vh]">
-            {cart.map(item => (
-              <CarouselItem key={item.product} className="pt-1 md:basis-1/4 lg:basis-1/5">
-                <div className="p-3 rounded-xl bg-muted/30 border border-transparent hover:border-border transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <h5 className="font-bold text-sm text-foreground pr-2 truncate">{item.product_name}</h5>
-                    <span className="font-display font-bold text-sm text-foreground whitespace-nowrap">
-                      R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground font-medium">R$ {parseFloat(item.unit_price.toString()).toFixed(2)} / un</span>
-                    <div className="flex items-center gap-2 bg-background rounded-lg border border-border p-1">
-                      <button
-                        onClick={() => updateQuantity(item.product, -1)}
-                        className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.product, 1)}
-                        className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-primary"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
+        <div className="w-full h-full max-h-[50vh] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+          {cart.map(item => (
+            <div key={item.product} className="p-3 rounded-xl bg-muted/30 border border-transparent hover:border-border transition-colors">
+              <div className="flex justify-between items-start mb-2">
+                <h5 className="font-bold text-sm text-foreground pr-2 truncate">{item.product_name}</h5>
+                <span className="font-display font-bold text-sm text-foreground whitespace-nowrap">
+                  R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground font-medium">R$ {parseFloat(item.unit_price.toString()).toFixed(2)} / un</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => removeFromCart(item.product)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center gap-2 bg-background rounded-lg border border-border p-1">
+                    <button
+                      onClick={() => updateQuantity(item.product, -1)}
+                      className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.product, 1)}
+                      className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-primary"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
                   </div>
                 </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-
-          {cart.length > 4 && (
-            <>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-7 w-7 rounded-full shadow-lg border border-border bg-background/80 backdrop-blur-sm"
-                  onClick={() => cartApi?.scrollPrev()}
-                >
-                  <ArrowUp className="h-3.5 w-3.5" />
-                </Button>
               </div>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-7 w-7 rounded-full shadow-lg border border-border bg-background/80 backdrop-blur-sm"
-                  onClick={() => cartApi?.scrollNext()}
-                >
-                  <ArrowDown className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </>
-          )}
-        </Carousel>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-10 px-8">
           <div className="h-16 w-16 rounded-3xl bg-muted flex items-center justify-center mb-4">
@@ -466,7 +450,10 @@ export default function Pedidos() {
         <div className="lg:hidden w-full flex gap-2">
           <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
             <SheetTrigger asChild>
-              <Button className="flex-1 h-12 rounded-xl font-bold bg-primary text-white shadow-lg shadow-primary/20">
+              <Button
+                key={cart.length}
+                className="flex-1 h-12 rounded-xl font-bold bg-primary text-white shadow-lg shadow-primary/20 animate-in zoom-in-95 duration-200"
+              >
                 <ShoppingBag className="mr-2 h-5 w-5" /> Ver Carrinho ({cart.length})
               </Button>
             </SheetTrigger>
@@ -502,72 +489,46 @@ export default function Pedidos() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-hidden relative group px-4 py-2">
+                <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
                   {cart.length > 0 ? (
-                    <Carousel
-                      orientation="vertical"
-                      opts={{ align: "start" }}
-                      setApi={setCartApi}
-                      className="w-full h-full max-h-[50vh]"
-                    >
-                      <CarouselContent className="-mt-1 h-[45vh]">
-                        {cart.map(item => (
-                          <CarouselItem key={item.product} className="pt-1 md:basis-1/4 lg:basis-1/5">
-                            <div className="p-3 rounded-xl bg-muted/30 border border-transparent hover:border-border transition-colors">
-                              <div className="flex justify-between items-start mb-2">
-                                <h5 className="font-bold text-sm text-foreground pr-2 truncate">{item.product_name}</h5>
-                                <span className="font-display font-bold text-sm text-foreground whitespace-nowrap">
-                                  R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] text-muted-foreground font-medium">R$ {parseFloat(item.unit_price.toString()).toFixed(2)} / un</span>
-                                <div className="flex items-center gap-2 bg-background rounded-lg border border-border p-1">
-                                  <button
-                                    onClick={() => updateQuantity(item.product, -1)}
-                                    className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground"
-                                  >
-                                    <Minus className="h-3 w-3" />
-                                  </button>
-                                  <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
-                                  <button
-                                    onClick={() => updateQuantity(item.product, 1)}
-                                    className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-primary"
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              </div>
+                    cart.map(item => (
+                      <div key={item.product} className="p-3 rounded-xl bg-muted/30 border border-transparent hover:border-border transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-bold text-sm text-foreground pr-2 truncate">{item.product_name}</h5>
+                          <span className="font-display font-bold text-sm text-foreground whitespace-nowrap">
+                            R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-muted-foreground font-medium">R$ {parseFloat(item.unit_price.toString()).toFixed(2)} / un</span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => removeFromCart(item.product)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <div className="flex items-center gap-2 bg-background rounded-lg border border-border p-1">
+                              <button
+                                onClick={() => updateQuantity(item.product, -1)}
+                                className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+                              <button
+                                onClick={() => updateQuantity(item.product, 1)}
+                                className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-primary"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
                             </div>
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-
-                      {cart.length > 4 && (
-                        <>
-                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              className="h-7 w-7 rounded-full shadow-lg border border-border bg-background/80 backdrop-blur-sm"
-                              onClick={() => cartApi?.scrollPrev()}
-                            >
-                              <ArrowUp className="h-3.5 w-3.5" />
-                            </Button>
                           </div>
-                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              className="h-7 w-7 rounded-full shadow-lg border border-border bg-background/80 backdrop-blur-sm"
-                              onClick={() => cartApi?.scrollNext()}
-                            >
-                              <ArrowDown className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </>
-                      )}
-                    </Carousel>
+                        </div>
+                      </div>
+                    ))
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-10 px-8">
                       <div className="h-16 w-16 rounded-3xl bg-muted flex items-center justify-center mb-4">
@@ -690,36 +651,62 @@ export default function Pedidos() {
                       {pdvSlides.map((slide, slideIndex) => (
                         <CarouselItem key={slideIndex}>
                           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 pb-4 px-1">
-                            {slide.map(product => (
-                              <button
-                                key={product.id}
-                                onClick={() => addToCart(product)}
-                                className="group flex flex-col items-start p-4 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all text-left relative overflow-hidden h-full"
-                              >
-                                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                  <Package className="h-5 w-5 text-primary" />
-                                </div>
-                                <h4 className="font-bold text-sm text-foreground line-clamp-2 mb-1">{product.nome}</h4>
-                                <div className="flex items-center justify-between w-full mb-3">
-                                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{product.categoria_name || product.categoria}</p>
-                                  <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${product.estoque <= product.estoque_min
-                                    ? 'bg-destructive/10 text-destructive'
-                                    : 'bg-primary/10 text-primary'
-                                    }`}>
-                                    <Warehouse className="h-3 w-3" />
-                                    {product.estoque} un
+                            {slide.map(product => {
+                              const stockActual = Number(product.estoque ?? product.stock ?? 0);
+                              const isOutOfStock = stockActual <= 0;
+
+                              return (
+                                <button
+                                  key={product.id}
+                                  onClick={() => {
+                                    if (isOutOfStock) {
+                                      navigate(`/produtos?edit=${product.id}`);
+                                    } else {
+                                      addToCart(product);
+                                    }
+                                  }}
+                                  className={`group flex flex-col items-start p-4 rounded-2xl border-2 transition-all text-left relative overflow-hidden h-full ${isOutOfStock
+                                    ? 'bg-muted/30 border-orange-500 opacity-80 hover:border-orange-600 hover:shadow-lg hover:shadow-orange-500/20'
+                                    : 'bg-card border-border hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5'
+                                    }`}
+                                >
+                                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center mb-3 transition-transform ${isOutOfStock ? 'bg-orange-500/10 text-orange-500' : 'bg-primary/10 text-primary group-hover:scale-110'}`}>
+                                    <Package className="h-5 w-5" />
                                   </div>
-                                </div>
-                                <div className="mt-auto w-full flex items-center justify-between">
-                                  <span className="text-base font-display font-extrabold text-foreground">
-                                    R$ {parseFloat(product.price.toString()).toFixed(2).replace('.', ',')}
-                                  </span>
-                                  <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                                    <Plus className="h-4 w-4" />
+
+                                  {isOutOfStock && (
+                                    <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                                      SEM ESTOQUE
+                                    </div>
+                                  )}
+
+                                  <h4 className="font-bold text-sm text-foreground line-clamp-2 mb-1">{product.nome}</h4>
+                                  <div className="flex items-center justify-between w-full mb-3">
+                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{product.categoria_name || product.categoria}</p>
+                                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${isOutOfStock
+                                      ? 'bg-orange-500/10 text-orange-500'
+                                      : stockActual <= (product.estoque_min ?? product.min_stock ?? 0)
+                                        ? 'bg-destructive/10 text-destructive'
+                                        : 'bg-primary/10 text-primary'
+                                      }`}>
+                                      <Warehouse className="h-3 w-3" />
+                                      {stockActual} un
+                                    </div>
                                   </div>
-                                </div>
-                              </button>
-                            ))}
+                                  <div className="mt-auto w-full flex items-center justify-between">
+                                    <span className="text-base font-display font-extrabold text-foreground">
+                                      R$ {parseFloat(product.price.toString()).toFixed(2).replace('.', ',')}
+                                    </span>
+                                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${isOutOfStock
+                                      ? 'bg-orange-500/10 text-orange-500 group-hover:bg-orange-500 group-hover:text-white'
+                                      : 'bg-muted group-hover:bg-primary group-hover:text-primary-foreground'
+                                      }`}>
+                                      {isOutOfStock ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
                           </div>
                         </CarouselItem>
                       ))}
@@ -803,70 +790,46 @@ export default function Pedidos() {
 
                   <div className="flex-1 overflow-hidden relative group px-4 py-2">
                     {cart.length > 0 ? (
-                      <Carousel
-                        orientation="vertical"
-                        opts={{ align: "start" }}
-                        setApi={setCartApi}
-                        className="w-full max-h-[80vh]"
-                      >
-                        <CarouselContent className="-mt-1 h-[45vh]">
-                          {cart.map(item => (
-                            <CarouselItem key={item.product} className="pt-1 md:basis-1/4 lg:basis-1/5">
-                              <div className="p-3 rounded-xl bg-muted/30 border border-transparent hover:border-border transition-colors">
-                                <div className="flex justify-between items-start mb-2">
-                                  <h5 className="font-bold text-sm text-foreground pr-2 truncate">{item.product_name}</h5>
-                                  <span className="font-display font-bold text-sm text-foreground whitespace-nowrap">
-                                    R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] text-muted-foreground font-medium">R$ {parseFloat(item.unit_price.toString()).toFixed(2)} / un</span>
-                                  <div className="flex items-center gap-2 bg-background rounded-lg border border-border p-1">
-                                    <button
-                                      onClick={() => updateQuantity(item.product, -1)}
-                                      className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground"
-                                    >
-                                      <Minus className="h-3 w-3" />
-                                    </button>
-                                    <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
-                                    <button
-                                      onClick={() => updateQuantity(item.product, 1)}
-                                      className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-primary"
-                                    >
-                                      <Plus className="h-3 w-3" />
-                                    </button>
-                                  </div>
+                      <div className="w-full h-full max-h-[80vh] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                        {cart.map(item => (
+                          <div key={item.product} className="p-3 rounded-xl bg-muted/30 border border-transparent hover:border-border transition-colors">
+                            <div className="flex justify-between items-start mb-2">
+                              <h5 className="font-bold text-sm text-foreground pr-2 truncate">{item.product_name}</h5>
+                              <span className="font-display font-bold text-sm text-foreground whitespace-nowrap">
+                                R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-muted-foreground font-medium">R$ {parseFloat(item.unit_price.toString()).toFixed(2)} / un</span>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => removeFromCart(item.product)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <div className="flex items-center gap-2 bg-background rounded-lg border border-border p-1">
+                                  <button
+                                    onClick={() => updateQuantity(item.product, -1)}
+                                    className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </button>
+                                  <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+                                  <button
+                                    onClick={() => updateQuantity(item.product, 1)}
+                                    className="h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center text-primary"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
                                 </div>
                               </div>
-                            </CarouselItem>
-                          ))}
-                        </CarouselContent>
-
-                        {cart.length > 4 && (
-                          <>
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-7 w-7 rounded-full shadow-lg border border-border bg-background/80 backdrop-blur-sm"
-                                onClick={() => cartApi?.scrollPrev()}
-                              >
-                                <ArrowUp className="h-3.5 w-3.5" />
-                              </Button>
                             </div>
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-7 w-7 rounded-full shadow-lg border border-border bg-background/80 backdrop-blur-sm"
-                                onClick={() => cartApi?.scrollNext()}
-                              >
-                                <ArrowDown className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </Carousel>
+                          </div>
+                        ))}
+                      </div>
                     ) : (
                       <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-10 px-8">
                         <div className="h-16 w-16 rounded-3xl bg-muted flex items-center justify-center mb-4">

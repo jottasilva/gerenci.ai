@@ -55,12 +55,12 @@ export function AppSidebar() {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-border h-24 flex items-center justify-center">
+      <div className="px-5 py-5 h-32 flex items-center justify-center">
         <RouterNavLink to="/" className="flex items-center justify-center w-full h-full">
           <img
             src="https://i.imgur.com/qjT8M0X.png"
             alt="Gerenc.AI"
-            className="w-full h-full object-contain max-h-14"
+            className="w-full h-full object-contain max-h-16"
           />
         </RouterNavLink>
       </div>

@@ -170,3 +170,26 @@ export interface Fornecedor {
   is_active: boolean;
   created_at?: string;
 }
+export interface DashboardStats {
+  period: string;
+  period_label: string;
+  kpis: {
+    total_revenue: number;
+    avg_ticket: number;
+    total_orders: number;
+    total_customers: number;
+    inventory_value: number;
+    inventory_items: number;
+  };
+  period_kpis: {
+    revenue: number;
+    profit: number;
+    orders: number;
+    avg_ticket: number;
+  };
+  daily_sales: Array<{ dia: string; vendas: number }>;
+  category_sales: Array<{ name: string; value: number }>;
+  top_products: Array<{ id: string; nome: string; total: number }>;
+  payment_methods: Array<{ name: string; value: number; count: number }>;
+  peak_hours: Record<string, number>;
+}

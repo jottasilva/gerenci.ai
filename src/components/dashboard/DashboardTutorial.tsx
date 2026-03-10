@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     ChevronRight, ChevronLeft, LayoutDashboard,
@@ -134,54 +135,60 @@ export function DashboardTutorial({ open: externalOpen, onOpenChange: setExterna
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="relative bg-background border border-border shadow-2xl rounded-[2rem] overflow-hidden flex flex-col pointer-events-auto"
-                style={{ width: '60vw', height: '50vh', maxWidth: '800px', maxHeight: '500px' }}
+                className="relative bg-background border border-border shadow-2xl rounded-[2rem] overflow-hidden flex flex-col pointer-events-auto mx-4"
+                style={{
+                    width: 'min(90vw, 800px)',
+                    height: 'auto',
+                    maxHeight: '90vh'
+                }}
             >
-                <div className="flex-1 flex flex-col md:flex-row h-full">
+                <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
                     {/* Visual Side */}
-                    <div className="w-full md:w-2/5 bg-primary/5 p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-primary/10">
+                    <div className="w-full md:w-2/5 bg-primary/5 p-6 md:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-primary/10 shrink-0">
                         <motion.div
                             key={currentStep}
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className={`h-24 w-24 rounded-3xl bg-white shadow-2xl flex items-center justify-center mb-6 ${steps[currentStep].color}`}
+                            className={`h-16 w-16 md:h-24 md:w-24 rounded-2xl md:rounded-3xl bg-white shadow-2xl flex items-center justify-center mb-4 md:mb-6 ${steps[currentStep].color}`}
                         >
-                            <StepIcon className="h-12 w-12" />
+                            <StepIcon className="h-8 w-8 md:h-12 md:w-12" />
                         </motion.div>
                         <div className="flex gap-2">
                             {steps.map((_, i) => (
                                 <div
                                     key={i}
-                                    className={`h-2 rounded-full transition-all duration-300 ${i === currentStep ? 'w-8 bg-primary' : 'w-2 bg-primary/20'}`}
+                                    className={`h-1.5 md:h-2 rounded-full transition-all duration-300 ${i === currentStep ? 'w-6 md:w-8 bg-primary' : 'w-1.5 md:w-2 bg-primary/20'}`}
                                 />
                             ))}
                         </div>
                     </div>
 
                     {/* Content Side */}
-                    <div className="flex-1 p-8 flex flex-col justify-between">
-                        <div className="space-y-4">
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={currentStep}
-                                    initial={{ y: 20, opacity: 0 }}
-                                    animate={{ y: 0, opacity: 1 }}
-                                    exit={{ y: -20, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="space-y-4"
-                                >
-                                    <h2 className="text-3xl font-display font-black text-foreground">
-                                        {steps[currentStep].title}
-                                    </h2>
-                                    <p className="text-lg text-muted-foreground leading-relaxed">
-                                        {steps[currentStep].description}
-                                    </p>
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
+                    <div className="flex-1 p-6 md:p-8 flex flex-col min-h-0 overflow-hidden justify-between">
+                        <ScrollArea className="flex-1 pr-4 mb-4">
+                            <div className="space-y-4">
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={currentStep}
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        exit={{ y: -20, opacity: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="space-y-3 md:space-y-4"
+                                    >
+                                        <h2 className="text-2xl md:text-3xl font-display font-black text-foreground">
+                                            {steps[currentStep].title}
+                                        </h2>
+                                        <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                                            {steps[currentStep].description}
+                                        </p>
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
+                        </ScrollArea>
 
-                        <div className="space-y-6">
-                            <div className="flex items-center space-x-3 bg-muted/30 p-4 rounded-2xl border border-border/50">
+                        <div className="space-y-4 md:space-y-6 pt-2 border-t border-border/50">
+                            <div className="flex items-center space-x-3 bg-muted/30 p-3 md:p-4 rounded-xl md:rounded-2xl border border-border/50">
                                 <Checkbox
                                     id="dontShow"
                                     checked={dontShowAgain}
@@ -189,27 +196,27 @@ export function DashboardTutorial({ open: externalOpen, onOpenChange: setExterna
                                 />
                                 <label
                                     htmlFor="dontShow"
-                                    className="text-sm font-bold leading-none cursor-pointer text-muted-foreground"
+                                    className="text-xs md:text-sm font-bold leading-none cursor-pointer text-muted-foreground"
                                 >
-                                    Não mostrar novamente ao entrar
+                                    Não mostrar novamente
                                 </label>
                             </div>
 
-                            <div className="flex justify-between items-center gap-4">
+                            <div className="flex justify-between items-center gap-3 md:gap-4">
                                 <Button
                                     variant="ghost"
                                     onClick={handlePrev}
                                     disabled={currentStep === 0}
-                                    className="rounded-xl font-bold h-12 px-6"
+                                    className="rounded-xl font-bold h-10 md:h-12 px-4 md:px-6 shrink-0"
                                 >
-                                    <ChevronLeft className="mr-2 h-5 w-5" /> Voltar
+                                    <ChevronLeft className="mr-1 md:mr-2 h-4 w-4 md:h-5 md:w-5" /> Voltar
                                 </Button>
                                 <Button
                                     onClick={handleNext}
-                                    className="rounded-xl px-10 font-bold bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-lg shadow-lg shadow-primary/20"
+                                    className="flex-1 rounded-xl px-4 md:px-10 font-bold bg-primary text-primary-foreground hover:bg-primary/90 h-10 md:h-12 text-sm md:text-lg shadow-lg shadow-primary/20"
                                 >
-                                    {currentStep === steps.length - 1 ? 'Começar Agora!' : 'Próximo'}
-                                    {currentStep < steps.length - 1 && <ChevronRight className="ml-2 h-5 w-5" />}
+                                    {currentStep === steps.length - 1 ? 'Começar!' : 'Próximo'}
+                                    {currentStep < steps.length - 1 && <ChevronRight className="ml-1 md:ml-2 h-4 w-4 md:h-5 md:w-5" />}
                                 </Button>
                             </div>
                         </div>

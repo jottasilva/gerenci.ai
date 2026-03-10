@@ -33,7 +33,7 @@ class ProductViewSet(MultiTenantViewSet):
         'create': 'pdv.vender', # Allow seller to create
         'update': 'produto.gerenciar',
         'partial_update': 'produto.gerenciar',
-        'destroy': 'produto.gerenciar',
+        'destroy': 'produto.deletar',
     }
 
     def create(self, request, *args, **kwargs):

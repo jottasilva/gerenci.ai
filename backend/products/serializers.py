@@ -33,6 +33,18 @@ class ProductSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('store',)
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        
+        # Hide sensitive fields for VENDEDOR
+        if request and hasattr(request.user, 'role') and request.user.role == 'VENDEDOR':
+            representation.pop('cost_price', None)
+            representation.pop('min_stock', None)
+            representation.pop('estoque_min', None)
+            
+        return representation
+
     def to_internal_value(self, data):
         """Accept both English and Portuguese field names on write."""
         # QueryDict.dict() returns the last value for each key, avoiding the list-of-values issue ['true']

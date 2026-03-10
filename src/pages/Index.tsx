@@ -84,16 +84,16 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className={`fixed left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'top-0 bg-background/80 backdrop-blur-xl border-b border-border' : 'top-4'
+      <nav className={`fixed left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'top-0 bg-background/80 backdrop-blur-xl' : 'top-4'
         }`}>
-        <div className="w-[80vw] md:max-w-7xl mx-auto h-16 flex items-center justify-between">
+        <div className="w-[80vw] md:max-w-7xl mx-auto h-24 flex items-center justify-between">
           <Link
             to="/"
             onClick={(e) => {
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="flex items-center h-14 w-48"
+            className="flex items-center h-16 w-52"
           >
             <img
               src="https://i.imgur.com/qjT8M0X.png"
@@ -109,13 +109,8 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-3">
               <Link to="/dashboard">
-                <Button variant="outline" className="border-border text-foreground rounded-xl">
-                  <LayoutDashboard className="mr-2 h-4 w-4" /> Painel
-                </Button>
-              </Link>
-              <Link to="/free">
                 <Button className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl">
-                  Começar grátis
+                  <LayoutDashboard className="mr-2 h-4 w-4" /> Gerenciar
                 </Button>
               </Link>
             </div>
@@ -144,13 +139,8 @@ export default function LandingPage() {
                     <a href="#precos" className="text-lg font-medium hover:text-primary transition-colors">Preços</a>
                     <div className="h-px bg-border my-2" />
                     <Link to="/dashboard" className="w-full">
-                      <Button variant="outline" className="w-full justify-start text-lg h-12 rounded-xl">
-                        <LayoutDashboard className="mr-3 h-5 w-5" /> Painel
-                      </Button>
-                    </Link>
-                    <Link to="/login" className="w-full">
-                      <Button className="w-full text-lg h-12 rounded-xl font-bold">
-                        Começar grátis
+                      <Button className="w-full justify-start text-lg h-12 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 border-none">
+                        <LayoutDashboard className="mr-3 h-5 w-5" /> Gerenciar
                       </Button>
                     </Link>
                   </div>
@@ -159,9 +149,9 @@ export default function LandingPage() {
             </div>
 
             {/* Always visible on small screens (non-desktop) but hidden when dashboard link is visible */}
-            <Link to="/login" className="sm:hidden">
+            <Link to="/dashboard" className="sm:hidden">
               <Button className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl px-4 py-2 text-sm h-9">
-                Grátis
+                Gerenciar
               </Button>
             </Link>
           </div>

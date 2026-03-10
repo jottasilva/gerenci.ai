@@ -19,6 +19,7 @@ PERMISSION_MAP = {
     
     # Produtos & Estoque
     'produto.gerenciar': ['ADMIN', 'GERENTE'],
+    'produto.deletar': ['ADMIN'],
     'estoque.ajustar': ['ADMIN', 'GERENTE'],
     'categoria.gerenciar': ['ADMIN', 'GERENTE'],
     

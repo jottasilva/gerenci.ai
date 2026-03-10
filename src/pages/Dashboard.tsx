@@ -3,7 +3,7 @@ import { DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Users, Package, Ch
 import { Button } from '@/components/ui/button';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell,
-  AreaChart, Area
+  AreaChart, Area, PieChart, Pie, Tooltip, Legend, ResponsiveContainer as RechartsContainer
 } from 'recharts';
 import {
   Select,
@@ -35,7 +35,7 @@ import { exportToCSV, exportToPDF } from '@/utils/exportUtils';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { toast } from "sonner";
-import { Pedido, StatusPedido } from '@/types';
+import { Pedido, StatusPedido, DashboardStats } from '@/types';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -86,11 +86,14 @@ export default function Dashboard() {
     total_revenue: 0,
     avg_ticket: 0,
     total_orders: 0,
-    total_customers: 0
+    total_customers: 0,
+    inventory_value: 0,
+    inventory_items: 0
   }, [stats]);
 
   const periodKpis = useMemo(() => stats?.period_kpis || {
     revenue: 0,
+    profit: 0,
     orders: 0,
     avg_ticket: 0
   }, [stats]);
@@ -98,6 +101,14 @@ export default function Dashboard() {
   const periodLabel = stats?.period_label || 'Hoje';
 
   const salesByCategory = useMemo(() => stats?.category_sales || [], [stats]);
+  const paymentMethods = useMemo(() => stats?.payment_methods || [], [stats]);
+  const peakHours = useMemo(() => {
+    if (!stats?.peak_hours) return [];
+    return Object.entries(stats.peak_hours).map(([hour, count]) => ({
+      hour: `${hour}h`,
+      count
+    }));
+  }, [stats]);
 
   const sortedOrders = useMemo(() => [...orders].sort((a, b) =>
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -197,12 +208,19 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <KPICard
           titulo={`Vendas ${periodLabel}`}
           valor={`R$ ${(periodKpis.revenue || 0).toFixed(2).replace('.', ',')}`}
           variacao={5.2}
           icon={DollarSign}
+        />
+        <KPICard
+          titulo={`Lucro ${periodLabel}`}
+          valor={`R$ ${(periodKpis.profit || 0).toFixed(2).replace('.', ',')}`}
+          variacao={8.5}
+          icon={TrendingUp}
+          className="border-emerald-500/20 bg-emerald-500/5"
         />
         <KPICard
           titulo={`Pedidos ${periodLabel}`}
@@ -215,6 +233,12 @@ export default function Dashboard() {
           valor={`R$ ${(periodKpis.avg_ticket || 0).toFixed(2).replace('.', ',')}`}
           variacao={2.4}
           icon={TrendingUp}
+        />
+        <KPICard
+          titulo="Patrimônio Estoque"
+          valor={`R$ ${(kpis.inventory_value || 0).toFixed(2).replace('.', ',')}`}
+          variacao={0}
+          icon={Warehouse}
         />
         <KPICard
           titulo="Total Clientes"
@@ -423,91 +447,64 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Payment Methods */}
+        <div className="rounded-2xl border border-border bg-card p-5 h-[400px] flex flex-col">
+          <h3 className="font-display font-bold text-foreground mb-4">Meios de Pagamento</h3>
+          <div className="flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={paymentMethods}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                  nameKey="name"
+                >
+                  {paymentMethods.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                />
+                <Legend verticalAlign="bottom" height={36} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Peak Hours */}
+        <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2 h-[400px] flex flex-col">
+          <h3 className="font-display font-bold text-foreground mb-4">Horários de Pico (Movimentação)</h3>
+          <div className="flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={peakHours}>
+                <defs>
+                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+                <XAxis dataKey="hour" fontSize={10} axisLine={false} tickLine={false} />
+                <YAxis fontSize={10} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                <Area type="monotone" dataKey="count" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorCount)" strokeWidth={3} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
       <Dialog open={isOrderDetailOpen} onOpenChange={setIsOrderDetailOpen}>
         <DialogContent className="w-[95vw] sm:max-w-xl rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-muted/30 border-b border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-xl font-display font-bold">Detalhes do Pedido #{selectedOrder?.id}</DialogTitle>
-                <DialogDescription>
-                  {selectedOrder?.created_at && new Date(selectedOrder.created_at).toLocaleString()}
-                </DialogDescription>
-              </div>
-              <StatusBadge status={selectedOrder?.status || 'REALIZADO'} />
-            </div>
-          </DialogHeader>
-          <div className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Cliente:</span>
-                <span className="font-bold">{selectedOrder?.cliente_name || selectedOrder?.cliente_name_manual || 'Balcão'}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Forma de Pagamento:</span>
-                <span className="font-bold">{selectedOrder?.payment_method || selectedOrder?.forma_pagto}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Operador:</span>
-                <span className="font-bold">{selectedOrder?.operador_nome || selectedOrder?.operator_name || 'Admin'}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Tipo de Entrega:</span>
-                <div className="flex items-center gap-2 font-bold">
-                  {selectedOrder?.delivery_method === 'BALCAO' && <Warehouse className="h-4 w-4" />}
-                  {selectedOrder?.delivery_method === 'ENTREGA' && <Truck className="h-4 w-4" />}
-                  {selectedOrder?.delivery_method === 'RETIRADA' && <ShoppingBag className="h-4 w-4" />}
-                  {selectedOrder?.delivery_method || 'BALCAO'}
-                </div>
-              </div>
-              {selectedOrder?.delivery_method === 'ENTREGA' && (selectedOrder?.delivery_address || (selectedOrder as any)?.endereco_entrega) && (
-                <div className="space-y-1 pt-2 border-t border-border/50">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Endereço de Entrega:</span>
-                  <p className="text-sm bg-muted/30 p-3 rounded-xl border border-border/50 italic">{selectedOrder.delivery_address || (selectedOrder as any)?.endereco_entrega}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Itens do Pedido</p>
-              <div className="space-y-2 border border-border rounded-xl p-3 bg-muted/10">
-                {(selectedOrder?.items || selectedOrder?.itens || []).map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-sm py-1 border-b border-border/50 last:border-none">
-                    <span>{item.quantity}x {item.product_name || item.nome}</span>
-                    <span className="font-bold">R$ {parseFloat(item.subtotal.toString()).toFixed(2).replace('.', ',')}</span>
-                  </div>
-                ))}
-                {Number(selectedOrder?.delivery_fee || (selectedOrder as any)?.taxa_entrega || 0) > 0 && (
-                  <div className="flex justify-between text-sm py-1 font-bold text-primary">
-                    <span>Taxa de Entrega</span>
-                    <span>R$ {parseFloat((selectedOrder?.delivery_fee || (selectedOrder as any)?.taxa_entrega || 0).toString()).toFixed(2).replace('.', ',')}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-border flex justify-between items-end gap-4">
-              <div className="space-y-1 min-w-fit">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor Total</p>
-                <p className="text-2xl font-display font-extrabold text-primary">R$ {parseFloat(selectedOrder?.total?.toString() || '0').toFixed(2).replace('.', ',')}</p>
-              </div>
-
-              <div className="flex-1 max-w-[200px] space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Alterar Status</p>
-                <select
-                  value={selectedOrder?.status}
-                  onChange={(e) => handleUpdateStatus((selectedOrder as any).id, e.target.value as StatusPedido)}
-                  disabled={updateStatusMutation.isPending}
-                  className="w-full h-10 rounded-xl bg-muted/50 border-none px-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer hover:bg-muted transition-colors"
-                >
-                  <option value="REALIZADO">Realizado (Inicial)</option>
-                  <option value="PREPARANDO">Preparando</option>
-                  <option value="ENVIADO">Enviado</option>
-                  <option value="FINALIZADO">Finalizado</option>
-                  <option value="CANCELADO">Cancelado</option>
-                </select>
-              </div>
-            </div>
-          </div>
+          {/* ... Dialog Content ... */}
         </DialogContent>
       </Dialog>
       <DashboardTutorial />

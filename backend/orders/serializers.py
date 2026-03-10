@@ -58,10 +58,34 @@ class OrderSerializer(serializers.ModelSerializer):
     pix_qrcode = serializers.CharField(source='pix_qr_code', read_only=True)
     itens = OrderItemSerializer(source='items', many=True, read_only=True)
 
+    # Added as per new documentation
+    desconto_porcentagem = serializers.DecimalField(source='discount_percentage', max_digits=5, decimal_places=2, read_only=True)
+
     class Meta:
         model = Order
-        fields = '__all__'
-        read_only_fields = ('store', 'operator')
+        fields = (
+            'id', 'customer', 'customer_name', 'customer_name_manual', 'total', 'discount', 
+            'discount_percentage', 'discount_coupon', 'payment_method', 
+            'received_amount', 'change_amount', 'delivery_method', 
+            'delivery_fee', 'delivery_address', 'pix_qr_code', 'status', 
+            'items', 'created_at', 'updated_at', 'operator',
+            # Aliases
+            'cliente', 'cliente_name', 'cliente_name_manual', 'desconto',
+            'forma_pagto', 'valor_recebido', 'troco', 'tipo_entrega',
+            'taxa_entrega', 'endereco_entrega', 'operador_nome',
+            'pix_qrcode', 'itens', 'desconto_porcentagem'
+        )
+        read_only_fields = ('store', 'operator', 'items', 'created_at', 'updated_at')
+
+    def validate(self, data):
+        request = self.context.get('request')
+        if request and hasattr(request.user, 'role') and request.user.role == 'VENDEDOR':
+            discount_pct = data.get('discount_percentage', 0)
+            if discount_pct > 0:
+                raise serializers.ValidationError({
+                    "discount_percentage": "Vendedores não podem aplicar desconto em porcentagem."
+                })
+        return data
 
     def to_internal_value(self, data):
         mapped = dict(data)
@@ -69,6 +93,10 @@ class OrderSerializer(serializers.ModelSerializer):
             mapped['customer'] = mapped.pop('cliente')
         if 'desconto' in mapped and 'discount' not in mapped:
             mapped['discount'] = mapped.pop('desconto')
+        # Add alias for discount_percentage
+        if 'desconto_porcentagem' in mapped and 'discount_percentage' not in mapped:
+            mapped['discount_percentage'] = mapped.pop('desconto_porcentagem')
+            
         if 'forma_pagto' in mapped and 'payment_method' not in mapped:
             mapped['payment_method'] = mapped.pop('forma_pagto')
         if 'valor_recebido' in mapped and 'received_amount' not in mapped:

@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Plus, Search, Package as PackageIcon, Pencil, Trash2,
   MoreHorizontal, Filter, AlertTriangle, Warehouse,
@@ -9,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EstoqueIndicator } from '@/components/shared/EstoqueIndicator';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +59,7 @@ import {
 const PRODUCTS_PER_PAGE = 16; // 4 rows × 4 cols on desktop
 
 export default function Produtos() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: products = [], isLoading, isError } = useGetProducts();
   const { data: categories = [] } = useGetCategories();
   const { data: suppliers = [] } = useGetSuppliers();
@@ -88,6 +91,7 @@ export default function Produtos() {
     price: 0,
     stock: 0,
     stock_min: 0,
+    description: '',
     is_active: true
   });
 
@@ -147,6 +151,7 @@ export default function Produtos() {
         price: 0,
         stock: 0,
         stock_min: 0,
+        description: '',
         is_active: true
       });
       setImagePreview(null);
@@ -154,6 +159,18 @@ export default function Produtos() {
     setImageFile(null);
     setIsDialogOpen(true);
   };
+
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId && products && products.length > 0 && !isLoading) {
+      const productToEdit = products.find((p: Produto) => String(p.id) === editId);
+      if (productToEdit && !isDialogOpen) {
+        handleOpenDialog(productToEdit);
+        searchParams.delete('edit');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, products, isLoading, isDialogOpen, setSearchParams]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -698,6 +715,15 @@ export default function Produtos() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-muted-foreground">Descrição</Label>
+                        <Textarea
+                          value={formData.description || ''}
+                          onChange={e => setFormData({ ...formData, description: e.target.value })}
+                          className="min-h-[80px] rounded-xl bg-muted/30 border-none px-4 resize-none"
+                          placeholder="Detalhes adicionais do produto..."
+                        />
                       </div>
                     </div>
                   </div>

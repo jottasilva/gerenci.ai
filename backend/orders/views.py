@@ -1,5 +1,5 @@
-from django.db.models import Sum, Avg, Count, F
-from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
+from django.db.models import Sum, Avg, Count, F, ExpressionWrapper, DecimalField
+from django.db.models.functions import TruncDate, TruncWeek, TruncMonth, ExtractHour
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.decorators import action
@@ -338,10 +338,52 @@ class OrderViewSet(MultiTenantViewSet):
             })
 
         # 5. Period KPIs (main cards)
+        # Include Profit calculation
+        # Profit = Sum(item.subtotal - (item.product.cost_price * item.quantity))
+        profit_qs = OrderItem.objects.filter(
+            order__store=store,
+            order__created_at__date__gte=period_start
+        ).exclude(order__status='CANCELADO').annotate(
+            item_profit=ExpressionWrapper(
+                F('subtotal') - (F('product__cost_price') * F('quantity')),
+                output_field=DecimalField()
+            )
+        ).aggregate(total_profit=Sum('item_profit'))
+
         period_kpi = period_query.aggregate(
             revenue=Sum('total'),
             count=Count('id'),
             avg=Avg('total')
+        )
+
+        # 6. Peak Hours (Filtered by base_query to show patterns)
+        peak_hours_qs = period_query.annotate(hour=ExtractHour('created_at')) \
+            .values('hour') \
+            .annotate(count=Count('id')) \
+            .order_by('hour')
+        
+        peak_hours_data = {str(i): 0 for i in range(24)}
+        for item in peak_hours_qs:
+            peak_hours_data[str(item['hour'])] = item['count']
+
+        # 7. Payment Methods
+        payment_methods = period_query.values('payment_method') \
+            .annotate(value=Sum('total'), count=Count('id')) \
+            .order_by('-value')
+
+        payment_data = []
+        for item in payment_methods:
+            payment_data.append({
+                'name': item['payment_method'],
+                'value': float(item['value'] or 0.0),
+                'count': item['count']
+            })
+
+        # 8. Inventory Value (Total Assets)
+        from products.models import Product
+        inventory_stats = Product.objects.filter(store=store, is_active=True).aggregate(
+            total_value=Sum(F('stock') * F('cost_price')),
+            total_items=Sum('stock')
         )
 
         # Period label for frontend
@@ -358,14 +400,19 @@ class OrderViewSet(MultiTenantViewSet):
                 'total_revenue': float(stats_kpi['total_revenue'] or 0.0),
                 'avg_ticket': float(stats_kpi['avg_ticket'] or 0.0),
                 'total_orders': stats_kpi['total_orders'],
-                'total_customers': total_customers
+                'total_customers': total_customers,
+                'inventory_value': float(inventory_stats['total_value'] or 0.0),
+                'inventory_items': inventory_stats['total_items'] or 0
             },
             'period_kpis': {
                 'revenue': float(period_kpi['revenue'] or 0.0),
+                'profit': float(profit_qs['total_profit'] or 0.0),
                 'orders': period_kpi['count'],
                 'avg_ticket': float(period_kpi['avg'] or 0.0)
             },
             'daily_sales': daily_sales_data,
             'category_sales': category_data,
-            'top_products': top_products_data
+            'top_products': top_products_data,
+            'payment_methods': payment_data,
+            'peak_hours': peak_hours_data
         })
