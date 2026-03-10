@@ -13,7 +13,6 @@ pip-delete-this-directory.txt
 .pytest_cache
 .vscode
 .idea
-*.sqlite3
 backend_error.log
 debug_whatsapp.log
 media/
